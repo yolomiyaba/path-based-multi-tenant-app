@@ -1,3 +1,6 @@
+import { ServerSessionInfo } from "@/components/ServerSessionInfo";
+import { SessionInfo } from "@/components/SessionInfo";
+
 interface TenantPageProps {
     params: Promise<{
         tenantId: string;
@@ -16,6 +19,11 @@ export default async function TenantPage({ params }: TenantPageProps) {
                 <p className="text-gray-600 dark:text-gray-400">
                     現在のテナントID: <span className="font-mono font-semibold">{tenantId}</span>
                 </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ServerSessionInfo tenantId={tenantId} />
+                <SessionInfo />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

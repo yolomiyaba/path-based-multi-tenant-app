@@ -65,6 +65,9 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
             strategy: "jwt",
         },
         secret: process.env.NEXTAUTH_SECRET,
+        // App Router用の設定
+        // @ts-ignore - NextAuth v4の型定義に含まれていない可能性がある
+        basePath: `/${tenantId}/api/auth`,
     };
 }
 
