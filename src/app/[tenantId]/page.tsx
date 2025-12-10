@@ -1,10 +1,12 @@
 interface TenantPageProps {
-  params: {
+  params: Promise<{
     tenantId: string;
-  };
+  }>;
 }
 
-export default function TenantPage({ params }: TenantPageProps) {
+export default async function TenantPage({ params }: TenantPageProps) {
+  const { tenantId } = await params;
+  
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -12,7 +14,7 @@ export default function TenantPage({ params }: TenantPageProps) {
           ダッシュボード
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          現在のテナントID: <span className="font-mono font-semibold">{params.tenantId}</span>
+          現在のテナントID: <span className="font-mono font-semibold">{tenantId}</span>
         </p>
       </div>
       
