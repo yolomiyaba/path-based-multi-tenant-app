@@ -5,7 +5,7 @@ export default function Home() {
         {/* メインタイトル */}
         <div className="space-y-4">
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Welcome
             </span>
           </h1>
