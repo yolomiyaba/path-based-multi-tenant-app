@@ -2,6 +2,7 @@
 
 import { useTenantSession } from "@/hooks/useTenantSession";
 import { useParams } from "next/navigation";
+import { LogoutButton } from "./LogoutButton";
 
 export function SessionInfo() {
   const params = useParams();
@@ -76,6 +77,9 @@ export function SessionInfo() {
             {session.user.tenantId}
           </span>
         </div>
+      </div>
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <LogoutButton />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { HeaderAuth } from "@/components/HeaderAuth";
 
 interface TenantLayoutProps {
     children: ReactNode;
@@ -23,6 +24,7 @@ export default async function TenantLayout({
                             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                                 テナント: {tenantId}
                             </h1>
+                            <HeaderAuth />
                         </div>
                     </div>
                 </header>
