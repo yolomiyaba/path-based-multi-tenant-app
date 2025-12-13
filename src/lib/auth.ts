@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { isUserBelongsToTenant } from "./users";
 
 /**
  * NextAuth設定を生成する関数
@@ -23,14 +24,27 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
 
                     // デモ用の簡単な認証（本番環境では適切な認証を実装してください）
                     // 実際には、データベースでテナントIDとユーザー情報を検証します
-                    if (
-                        credentials.email === "admin@example.com" &&
-                        credentials.password === "password"
-                    ) {
+                    const validCredentials =
+                        credentials.email === "admin@example.com" ||
+                        credentials.email === "user1@example.com" ||
+                        credentials.email === "user2@example.com" ||
+                        credentials.email === "user3@example.com";
+
+                    if (validCredentials && credentials.password === "password") {
+                        // ユーザーがこのテナントに所属しているかチェック
+                        if (!isUserBelongsToTenant(credentials.email, tenantId)) {
+                            // このテナントに所属していない場合は認証を拒否
+                            return null;
+                        }
+
                         return {
-                            id: "1",
+                            id: credentials.email === "admin@example.com" ? "1" :
+                                credentials.email === "user1@example.com" ? "2" :
+                                    credentials.email === "user2@example.com" ? "3" : "4",
                             email: credentials.email,
-                            name: "Admin User",
+                            name: credentials.email === "admin@example.com" ? "Admin User" :
+                                credentials.email === "user1@example.com" ? "User 1" :
+                                    credentials.email === "user2@example.com" ? "User 2" : "User 3",
                             tenantId: tenantId,
                         };
                     }
