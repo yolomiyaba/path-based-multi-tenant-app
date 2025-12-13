@@ -64,6 +64,23 @@ export default function SignInPage() {
     }
   };
 
+  const handleMicrosoftSignIn = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      // テナントIDをクッキーに保存
+      document.cookie = `auth_tenant_id=${tenantId}; path=/; max-age=1800; SameSite=Lax`;
+
+      await signIn("azure-ad", {
+        callbackUrl: callbackUrl,
+        redirect: true,
+      });
+    } catch (err) {
+      setError("Microsoft認証中にエラーが発生しました");
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -165,6 +182,21 @@ export default function SignInPage() {
                 />
               </svg>
               Googleでサインイン
+            </button>
+
+            <button
+              type="button"
+              onClick={handleMicrosoftSignIn}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 23 23">
+                <path fill="#f35325" d="M1 1h10v10H1z" />
+                <path fill="#81bc06" d="M12 1h10v10H12z" />
+                <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                <path fill="#ffba08" d="M12 12h10v10H12z" />
+              </svg>
+              Microsoftでサインイン
             </button>
           </div>
 

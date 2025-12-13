@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import AzureADProvider from "next-auth/providers/azure-ad";
 import { isUserBelongsToTenant } from "./users";
 
 /**
@@ -32,6 +33,7 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
                         credentials.email === "user2@example.com" ||
                         credentials.email === "user3@example.com";
 
+                    // devleadxaid@gmail.com will belong to tenant1 as well as any other assigned tenants in isUserBelongsToTenant
                     if (validCredentials && credentials.password === "password") {
                         // ユーザーがこのテナントに所属しているかチェック
                         if (!isUserBelongsToTenant(credentials.email, tenantId)) {
@@ -39,14 +41,29 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
                             return null;
                         }
 
+                        let id: string, name: string;
+                        if (credentials.email === "admin@example.com") {
+                            id = "1";
+                            name = "Admin User";
+                        } else if (credentials.email === "user1@example.com") {
+                            id = "2";
+                            name = "User 1";
+                        } else if (credentials.email === "user2@example.com") {
+                            id = "3";
+                            name = "User 2";
+                        } else if (credentials.email === "devleadxaid@gmail.com") {
+                            // devleadxaid@gmail.com is explicitly added to tenant1 for demonstration
+                            id = "5";
+                            name = "Dev Lead";
+                        } else {
+                            id = "4";
+                            name = "User 3";
+                        }
+
                         return {
-                            id: credentials.email === "admin@example.com" ? "1" :
-                                credentials.email === "user1@example.com" ? "2" :
-                                    credentials.email === "user2@example.com" ? "3" : "4",
+                            id,
                             email: credentials.email,
-                            name: credentials.email === "admin@example.com" ? "Admin User" :
-                                credentials.email === "user1@example.com" ? "User 1" :
-                                    credentials.email === "user2@example.com" ? "User 2" : "User 3",
+                            name,
                             tenantId: tenantId,
                         };
                     }
@@ -64,11 +81,22 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
                 //     },
                 // },
             }),
+            AzureADProvider({
+                clientId: process.env.AZURE_AD_CLIENT_ID || "",
+                clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
+                tenantId: process.env.AZURE_AD_TENANT_ID || "common",
+                // "common" を指定すると、任意のMicrosoftアカウント（個人/組織）でログイン可能
+                // 特定のテナントのみ許可する場合は、Azure ADのテナントIDを指定
+            }),
         ],
         callbacks: {
-            async signIn({ user, account, profile }) {
-                // Google認証の場合、テナント所属チェック
-                if (account?.provider === "google" && user.email) {
+            async signIn({ user, account }) {
+                // OAuth認証の場合、テナント所属チェック
+                if (
+                    (account?.provider === "google" ||
+                        account?.provider === "azure-ad") &&
+                    user.email
+                ) {
                     // ユーザーがこのテナントに所属しているかチェック
                     if (!isUserBelongsToTenant(user.email, tenantId)) {
                         // このテナントに所属していない場合は認証を拒否
@@ -82,8 +110,12 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
                 if (user) {
                     token.tenantId = tenantId;
                     token.id = user.id;
-                    // Google認証の場合、メールアドレスを保存
-                    if (account?.provider === "google" && user.email) {
+                    // OAuth認証の場合、メールアドレスを保存
+                    if (
+                        (account?.provider === "google" ||
+                            account?.provider === "azure-ad") &&
+                        user.email
+                    ) {
                         token.email = user.email;
                     }
                 }
