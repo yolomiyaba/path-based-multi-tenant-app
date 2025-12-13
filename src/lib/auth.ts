@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { isUserBelongsToTenant } from "./users";
 
 /**
@@ -26,6 +27,7 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
                     // 実際には、データベースでテナントIDとユーザー情報を検証します
                     const validCredentials =
                         credentials.email === "admin@example.com" ||
+                        credentials.email === "devleadxaid@gmail.com" ||
                         credentials.email === "user1@example.com" ||
                         credentials.email === "user2@example.com" ||
                         credentials.email === "user3@example.com";
@@ -52,13 +54,38 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
                     return null;
                 },
             }),
+            GoogleProvider({
+                clientId: process.env.GOOGLE_CLIENT_ID || "",
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+                // Google Workspaceの場合、特定のドメインを制限する場合は以下をコメントアウト
+                // authorization: {
+                //     params: {
+                //         hd: "your-workspace-domain.com", // 特定のドメインのみ許可
+                //     },
+                // },
+            }),
         ],
         callbacks: {
-            async jwt({ token, user }) {
+            async signIn({ user, account, profile }) {
+                // Google認証の場合、テナント所属チェック
+                if (account?.provider === "google" && user.email) {
+                    // ユーザーがこのテナントに所属しているかチェック
+                    if (!isUserBelongsToTenant(user.email, tenantId)) {
+                        // このテナントに所属していない場合は認証を拒否
+                        return false;
+                    }
+                }
+                return true;
+            },
+            async jwt({ token, user, account }) {
                 // セッションにテナントIDを含める
                 if (user) {
                     token.tenantId = tenantId;
                     token.id = user.id;
+                    // Google認証の場合、メールアドレスを保存
+                    if (account?.provider === "google" && user.email) {
+                        token.email = user.email;
+                    }
                 }
                 return token;
             },
@@ -67,6 +94,10 @@ export function getAuthOptions(tenantId: string): NextAuthOptions {
                 if (session.user) {
                     session.user.tenantId = token.tenantId as string;
                     session.user.id = token.id as string;
+                    // Google認証の場合、メールアドレスを確実に設定
+                    if (token.email) {
+                        session.user.email = token.email as string;
+                    }
                 }
                 return session;
             },

@@ -11,6 +11,7 @@
  */
 const USER_TENANT_MAP: Record<string, string> = {
   "admin@example.com": "tenant1",
+  "devleadxaid@gmail.com": "tenant1",
   "user1@example.com": "tenant1",
   "user2@example.com": "tenant2",
   "user3@example.com": "tenant3",

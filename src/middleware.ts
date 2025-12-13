@@ -61,6 +61,11 @@ async function getTenantIdFromSession(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // ルートレベルの/auth/パスはそのまま通過
+  if (pathname.startsWith("/auth/")) {
+    return NextResponse.next();
+  }
+
   // テナント配下のパスかどうかをチェック
   const tenantId = extractTenantId(pathname);
 
