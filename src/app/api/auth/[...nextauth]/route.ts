@@ -45,12 +45,16 @@ async function getHandler() {
     const cookieStore = await cookies();
     const tenantId = cookieStore.get("auth_tenant_id")?.value;
 
+    console.log("[NextAuth] auth_tenant_id cookie:", tenantId || "(not set)");
+
     if (tenantId) {
         // テナント指定ログイン（既存のフロー）
+        console.log("[NextAuth] Using tenant-specific auth for:", tenantId);
         const authOptions = createTenantAuthOptions(tenantId);
         return NextAuth(authOptions);
     } else {
         // テナント非指定ログイン（新しいグローバルフロー）
+        console.log("[NextAuth] Using global auth (no tenant specified)");
         const authOptions = getGlobalAuthOptions();
         return NextAuth(authOptions);
     }
