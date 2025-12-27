@@ -58,11 +58,23 @@ async function getTenantIdFromSession(
   }
 }
 
+/**
+ * テナントに依存しないグローバルパス
+ */
+const globalPaths = ["/auth", "/signup", "/select-tenant"];
+
+/**
+ * パスがグローバルパスかどうかをチェック
+ */
+function isGlobalPath(pathname: string): boolean {
+  return globalPaths.some((path) => pathname.startsWith(path));
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ルートレベルの/auth/パスはそのまま通過
-  if (pathname.startsWith("/auth/")) {
+  // グローバルパス（/auth/, /signup, /select-tenant）はそのまま通過
+  if (isGlobalPath(pathname)) {
     return NextResponse.next();
   }
 
