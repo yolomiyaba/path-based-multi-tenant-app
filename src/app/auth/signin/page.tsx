@@ -31,6 +31,9 @@ function SignInContent() {
     setFormError(null);
     setIsLoading(true);
 
+    // グローバル認証を使用するためクッキーをクリア
+    clearTenantCookie();
+
     try {
       await signIn("credentials", {
         email,
@@ -47,6 +50,10 @@ function SignInContent() {
   const handleGoogleSignIn = async () => {
     setFormError(null);
     setIsLoading(true);
+
+    // グローバル認証を使用するためクッキーをクリア
+    clearTenantCookie();
+
     try {
       await signIn("google", {
         callbackUrl: "/auth/redirect",
@@ -61,6 +68,10 @@ function SignInContent() {
   const handleMicrosoftSignIn = async () => {
     setFormError(null);
     setIsLoading(true);
+
+    // グローバル認証を使用するためクッキーをクリア
+    clearTenantCookie();
+
     try {
       await signIn("azure-ad", {
         callbackUrl: "/auth/redirect",
