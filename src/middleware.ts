@@ -38,7 +38,25 @@ function isPublicPath(pathname: string): boolean {
 }
 
 /**
- * セッションからテナントIDを取得
+ * セッションが存在するかチェック（テナントIDは問わない）
+ */
+async function hasValidSession(request: NextRequest): Promise<boolean> {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // トークンが存在し、メールアドレスがあれば有効なセッション
+    return !!token?.email;
+  } catch (error) {
+    console.error("Error checking session:", error);
+    return false;
+  }
+}
+
+/**
+ * セッションからテナントIDを取得（テナント指定ログイン用）
  */
 async function getTenantIdFromSession(
   request: NextRequest,
@@ -106,22 +124,29 @@ export async function middleware(request: NextRequest) {
 
   // 保護されたパスの場合、認証チェック
   if (isProtectedPath(pathname)) {
-    const sessionTenantId = await getTenantIdFromSession(request, tenantId);
+    // まずセッションが存在するかチェック（グローバル認証対応）
+    const hasSession = await hasValidSession(request);
 
-    // セッションがない場合は、サインインページにリダイレクト
-    if (!sessionTenantId) {
-      const signInUrl = new URL(`/${tenantId}/auth/signin`, request.url);
+    if (!hasSession) {
+      // セッションがない場合は、グローバルサインインページにリダイレクト
+      const signInUrl = new URL("/auth/signin", request.url);
       signInUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(signInUrl);
     }
 
-    // セッションのテナントIDとパスのテナントIDが一致しない場合
-    if (sessionTenantId !== tenantId) {
+    // セッションがある場合、テナント固有のセッションかチェック
+    const sessionTenantId = await getTenantIdFromSession(request, tenantId);
+
+    // テナント固有のセッションがあり、テナントIDが一致しない場合
+    if (sessionTenantId && sessionTenantId !== tenantId) {
       return NextResponse.json(
         { error: "Tenant mismatch" },
         { status: 403 }
       );
     }
+
+    // グローバル認証（sessionTenantId === null）の場合は通過を許可
+    // ページ側でテナント所属チェックを行う
   }
 
   return NextResponse.next();
