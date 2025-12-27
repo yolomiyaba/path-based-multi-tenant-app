@@ -2,13 +2,13 @@
 
 import { useSession as useNextAuthSession } from "next-auth/react";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import type { Session } from "next-auth";
 
 /**
  * テナント対応のセッションフック
  * クライアントサイドでセッションを取得します
- * 
+ * グローバル認証に対応（セッションにtenantIdがなくても有効）
+ *
  * @param tenantId - テナントID（省略時はURLパラメータから取得）
  */
 export function useTenantSession(tenantId?: string) {
@@ -16,27 +16,33 @@ export function useTenantSession(tenantId?: string) {
     const resolvedTenantId = tenantId || (params?.tenantId as string);
     const { data: session, status } = useNextAuthSession();
 
-    const [tenantSession, setTenantSession] = useState<Session | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // グローバル認証: セッションがあればOK（tenantIdチェック不要）
+    // テナント所属チェックはサーバーサイドで行う
+    if (status === "loading") {
+        return {
+            data: null,
+            status: "loading" as const,
+        };
+    }
 
-    useEffect(() => {
-        if (!resolvedTenantId) {
-            setIsLoading(false);
-            return;
-        }
-
-        // セッションのテナントIDと現在のテナントIDが一致するか確認
-        if (session?.user?.tenantId === resolvedTenantId) {
-            setTenantSession(session);
-        } else {
-            setTenantSession(null);
-        }
-        setIsLoading(status === "loading");
-    }, [session, resolvedTenantId, status]);
+    if (session?.user?.email) {
+        // セッションがあれば、tenantIdを付与して返す
+        const tenantSession: Session = {
+            ...session,
+            user: {
+                ...session.user,
+                tenantId: resolvedTenantId,
+            },
+        };
+        return {
+            data: tenantSession,
+            status: "authenticated" as const,
+        };
+    }
 
     return {
-        data: tenantSession,
-        status: isLoading ? "loading" : tenantSession ? "authenticated" : "unauthenticated",
+        data: null,
+        status: "unauthenticated" as const,
     };
 }
 
