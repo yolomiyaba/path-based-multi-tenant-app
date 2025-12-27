@@ -1,13 +1,19 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getUserTenantIds } from "@/lib/users";
 
+/**
+ * ハードナビゲーションでリダイレクト
+ * router.pushだとクライアントサイドのセッションが古いままになる問題を回避
+ */
+function hardRedirect(url: string) {
+  window.location.href = url;
+}
+
 export default function SelectTenantPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [tenants, setTenants] = useState<string[]>([]);
 
   useEffect(() => {
@@ -16,25 +22,25 @@ export default function SelectTenantPage() {
     }
 
     if (status === "unauthenticated" || !session?.user?.email) {
-      router.push("/auth/signin");
+      hardRedirect("/auth/signin");
       return;
     }
 
     const userTenants = getUserTenantIds(session.user.email);
 
     if (userTenants.length === 0) {
-      router.push("/auth/signup");
+      hardRedirect("/auth/signup");
     } else if (userTenants.length === 1) {
-      router.push(`/${userTenants[0]}/dashboard`);
+      hardRedirect(`/${userTenants[0]}/dashboard`);
     } else {
       setTenants(userTenants);
     }
-  }, [session, status, router]);
+  }, [session, status]);
 
   const handleTenantSelect = (tenantId: string) => {
     // テナントIDをクッキーに保存してからリダイレクト
     document.cookie = `auth_tenant_id=${tenantId}; path=/; max-age=1800; SameSite=Lax`;
-    router.push(`/${tenantId}/dashboard`);
+    hardRedirect(`/${tenantId}/dashboard`);
   };
 
   const handleSignOut = async () => {
