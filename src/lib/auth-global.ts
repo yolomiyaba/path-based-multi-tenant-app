@@ -97,17 +97,11 @@ export function getGlobalAuthOptions(): NextAuthOptions {
         return session;
       },
       async redirect({ url, baseUrl }) {
-        // 認証後のリダイレクト先を /auth/redirect に設定
-        // ここでテナント判定を行う
-        if (url.includes("/api/auth/callback")) {
-          return `${baseUrl}/auth/redirect`;
-        }
-        if (url.startsWith("/")) {
-          return `${baseUrl}${url}`;
-        }
-        if (new URL(url).origin === baseUrl) {
-          return url;
-        }
+        // グローバル認証では常に /auth/redirect へリダイレクト
+        // そこでテナント判定を行う
+        console.log("[NextAuth Global] redirect callback - url:", url, "baseUrl:", baseUrl);
+
+        // 常に /auth/redirect へリダイレクト（テナント判定はそこで行う）
         return `${baseUrl}/auth/redirect`;
       },
     },
