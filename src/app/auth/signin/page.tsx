@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useState, FormEvent, Suspense, useEffect } from "react";
 
 /**
@@ -14,6 +14,7 @@ function clearTenantCookie() {
 
 function SignInContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const error = searchParams?.get("error");
 
   // ページ読み込み時にテナントクッキーをクリア
@@ -35,12 +36,20 @@ function SignInContent() {
     clearTenantCookie();
 
     try {
-      await signIn("credentials", {
+      // redirect: false を使用して手動でリダイレクト
+      const result = await signIn("credentials", {
         email,
         password,
-        redirect: true,
-        callbackUrl: "/auth/redirect",
+        redirect: false,
       });
+
+      if (result?.error) {
+        setFormError("メールアドレスまたはパスワードが正しくありません");
+        setIsLoading(false);
+      } else if (result?.ok) {
+        // 認証成功 → 手動でリダイレクト
+        router.push("/auth/redirect");
+      }
     } catch (err) {
       setFormError("ログイン中にエラーが発生しました");
       setIsLoading(false);
