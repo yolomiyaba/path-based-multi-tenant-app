@@ -2,11 +2,24 @@
 
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { useState, FormEvent, Suspense } from "react";
+import { useState, FormEvent, Suspense, useEffect } from "react";
+
+/**
+ * auth_tenant_id クッキーをクリア
+ * グローバルログインではテナント指定なしで認証するため
+ */
+function clearTenantCookie() {
+  document.cookie = "auth_tenant_id=; path=/; max-age=0; SameSite=Lax";
+}
 
 function SignInContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get("error");
+
+  // ページ読み込み時にテナントクッキーをクリア
+  useEffect(() => {
+    clearTenantCookie();
+  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
