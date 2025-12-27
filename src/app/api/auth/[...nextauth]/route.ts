@@ -1,11 +1,12 @@
 import { getAuthOptions } from "@/lib/auth";
+import { getGlobalAuthOptions } from "@/lib/auth-global";
 import { cookies } from "next/headers";
 import NextAuth from "next-auth";
 
 /**
  * テナント固有のNextAuth設定を生成
  */
-function createAuthOptions(tenantId: string) {
+function createTenantAuthOptions(tenantId: string) {
     const authOptions = getAuthOptions(tenantId);
 
     return {
@@ -36,19 +37,23 @@ function createAuthOptions(tenantId: string) {
 }
 
 /**
- * デフォルトのテナントID（フォールバック用）
- */
-const DEFAULT_TENANT_ID = "tenant1";
-
-/**
  * テナントIDを取得してハンドラーを返す
+ * - auth_tenant_id クッキーがある場合: テナント固有の認証
+ * - クッキーがない場合: グローバル認証（テナント非指定）
  */
 async function getHandler() {
     const cookieStore = await cookies();
-    const tenantId =
-        cookieStore.get("auth_tenant_id")?.value || DEFAULT_TENANT_ID;
-    const authOptions = createAuthOptions(tenantId);
-    return NextAuth(authOptions);
+    const tenantId = cookieStore.get("auth_tenant_id")?.value;
+
+    if (tenantId) {
+        // テナント指定ログイン（既存のフロー）
+        const authOptions = createTenantAuthOptions(tenantId);
+        return NextAuth(authOptions);
+    } else {
+        // テナント非指定ログイン（新しいグローバルフロー）
+        const authOptions = getGlobalAuthOptions();
+        return NextAuth(authOptions);
+    }
 }
 
 // NextAuth v4 App Router: NextAuth()は直接ハンドラー関数を返す
