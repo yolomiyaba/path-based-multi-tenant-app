@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getUserTenantIds, isUserBelongsToTenant } from "@/lib/users";
 
@@ -32,9 +31,16 @@ function extractTenantFromCallback(callbackUrl: string): string | null {
   return null;
 }
 
+/**
+ * ハードナビゲーションでリダイレクト
+ * router.pushだとクライアントサイドのセッションが古いままになる問題を回避
+ */
+function hardRedirect(url: string) {
+  window.location.href = url;
+}
+
 export default function AuthRedirectPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [message, setMessage] = useState("認証情報を確認中...");
 
   useEffect(() => {
@@ -44,7 +50,7 @@ export default function AuthRedirectPage() {
 
     if (status === "unauthenticated" || !session?.user?.email) {
       setMessage("認証されていません。ログインページにリダイレクトします...");
-      router.push("/auth/signin");
+      hardRedirect("/auth/signin");
       return;
     }
 
@@ -57,7 +63,7 @@ export default function AuthRedirectPage() {
       const targetTenant = extractTenantFromCallback(callbackUrl);
       if (targetTenant && isUserBelongsToTenant(email, targetTenant)) {
         setMessage(`${callbackUrl} にリダイレクトします...`);
-        router.push(callbackUrl);
+        hardRedirect(callbackUrl);
         return;
       }
     }
@@ -66,17 +72,17 @@ export default function AuthRedirectPage() {
     if (tenants.length === 0) {
       // 未登録ユーザー → 会員登録ページへ
       setMessage("アカウントが見つかりません。登録ページにリダイレクトします...");
-      router.push("/auth/signup");
+      hardRedirect("/auth/signup");
     } else if (tenants.length === 1) {
       // 1つのテナントのみ → そのテナントのダッシュボードへ
       setMessage(`${tenants[0]} にリダイレクトします...`);
-      router.push(`/${tenants[0]}/dashboard`);
+      hardRedirect(`/${tenants[0]}/dashboard`);
     } else {
       // 複数テナント → テナント選択ページへ
       setMessage("テナント選択ページにリダイレクトします...");
-      router.push("/tenants");
+      hardRedirect("/tenants");
     }
-  }, [session, status, router]);
+  }, [session, status]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
