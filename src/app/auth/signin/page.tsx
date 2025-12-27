@@ -5,22 +5,27 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, FormEvent, Suspense, useEffect } from "react";
 
 /**
- * auth_tenant_id クッキーをクリア
- * グローバルログインではテナント指定なしで認証するため
+ * callbackUrl をクッキーに保存
+ * 認証後のリダイレクト先として使用
  */
-function clearTenantCookie() {
-  document.cookie = "auth_tenant_id=; path=/; max-age=0; SameSite=Lax";
+function saveCallbackUrl(callbackUrl: string | null) {
+  if (callbackUrl) {
+    document.cookie = `auth_callback_url=${encodeURIComponent(callbackUrl)}; path=/; max-age=1800; SameSite=Lax`;
+  } else {
+    document.cookie = "auth_callback_url=; path=/; max-age=0; SameSite=Lax";
+  }
 }
 
 function SignInContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const error = searchParams?.get("error");
+  const callbackUrl = searchParams?.get("callbackUrl");
 
-  // ページ読み込み時にテナントクッキーをクリア
+  // ページ読み込み時にcallbackUrlを保存
   useEffect(() => {
-    clearTenantCookie();
-  }, []);
+    saveCallbackUrl(callbackUrl);
+  }, [callbackUrl]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,9 +36,6 @@ function SignInContent() {
     e.preventDefault();
     setFormError(null);
     setIsLoading(true);
-
-    // グローバル認証を使用するためクッキーをクリア
-    clearTenantCookie();
 
     try {
       // redirect: false を使用して手動でリダイレクト
@@ -60,9 +62,6 @@ function SignInContent() {
     setFormError(null);
     setIsLoading(true);
 
-    // グローバル認証を使用するためクッキーをクリア
-    clearTenantCookie();
-
     try {
       await signIn("google", {
         callbackUrl: "/auth/redirect",
@@ -77,9 +76,6 @@ function SignInContent() {
   const handleMicrosoftSignIn = async () => {
     setFormError(null);
     setIsLoading(true);
-
-    // グローバル認証を使用するためクッキーをクリア
-    clearTenantCookie();
 
     try {
       await signIn("azure-ad", {

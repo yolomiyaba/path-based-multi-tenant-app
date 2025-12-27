@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface LogoutButtonProps {
@@ -9,9 +9,7 @@ interface LogoutButtonProps {
 }
 
 export function LogoutButton({ className = "" }: LogoutButtonProps) {
-  const params = useParams();
   const router = useRouter();
-  const tenantId = params?.tenantId as string;
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogout = async () => {
@@ -19,10 +17,9 @@ export function LogoutButton({ className = "" }: LogoutButtonProps) {
     try {
       await signOut({
         redirect: false,
-        callbackUrl: `/${tenantId}/auth/signin`,
       });
-      // ログアウト後、ページをリフレッシュ
-      router.push(`/${tenantId}/auth/signin`);
+      // ログアウト後、グローバルサインインページへ
+      router.push("/auth/signin");
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);

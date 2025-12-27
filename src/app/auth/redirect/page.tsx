@@ -3,7 +3,34 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getUserTenantIds } from "@/lib/users";
+import { getUserTenantIds, isUserBelongsToTenant } from "@/lib/users";
+
+/**
+ * クッキーからcallbackUrlを取得してクリア
+ */
+function getAndClearCallbackUrl(): string | null {
+  const cookies = document.cookie.split(";");
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split("=");
+    if (name === "auth_callback_url" && value) {
+      // クッキーをクリア
+      document.cookie = "auth_callback_url=; path=/; max-age=0; SameSite=Lax";
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+/**
+ * callbackUrlからテナントIDを抽出
+ */
+function extractTenantFromCallback(callbackUrl: string): string | null {
+  const match = callbackUrl.match(/^\/([^\/]+)/);
+  if (match && match[1] && !["auth", "tenants", "api"].includes(match[1])) {
+    return match[1];
+  }
+  return null;
+}
 
 export default function AuthRedirectPage() {
   const { data: session, status } = useSession();
@@ -23,7 +50,19 @@ export default function AuthRedirectPage() {
 
     const email = session.user.email;
     const tenants = getUserTenantIds(email);
+    const callbackUrl = getAndClearCallbackUrl();
 
+    // callbackUrlがある場合、そのテナントへのアクセス権があればリダイレクト
+    if (callbackUrl) {
+      const targetTenant = extractTenantFromCallback(callbackUrl);
+      if (targetTenant && isUserBelongsToTenant(email, targetTenant)) {
+        setMessage(`${callbackUrl} にリダイレクトします...`);
+        router.push(callbackUrl);
+        return;
+      }
+    }
+
+    // callbackUrlがない、または無効な場合は通常のフロー
     if (tenants.length === 0) {
       // 未登録ユーザー → 会員登録ページへ
       setMessage("アカウントが見つかりません。登録ページにリダイレクトします...");

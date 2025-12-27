@@ -19,9 +19,11 @@ export function HeaderAuth() {
     }
 
     if (status === "unauthenticated" || !session) {
+        // グローバル認証ページへリダイレクト（callbackUrlでテナントに戻る）
+        const callbackUrl = tenantId ? `/${tenantId}/dashboard` : "/";
         return (
             <Link
-                href={`/${tenantId}/auth/signin`}
+                href={`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md"
             >
                 サインイン
