@@ -27,7 +27,7 @@ export default function AuthRedirectPage() {
     if (tenants.length === 0) {
       // 未登録ユーザー → 会員登録ページへ
       setMessage("アカウントが見つかりません。登録ページにリダイレクトします...");
-      router.push("/signup");
+      router.push("/auth/signup");
     } else if (tenants.length === 1) {
       // 1つのテナントのみ → そのテナントのダッシュボードへ
       setMessage(`${tenants[0]} にリダイレクトします...`);
@@ -35,7 +35,7 @@ export default function AuthRedirectPage() {
     } else {
       // 複数テナント → テナント選択ページへ
       setMessage("テナント選択ページにリダイレクトします...");
-      router.push("/select-tenant");
+      router.push("/tenants");
     }
   }, [session, status, router]);
 

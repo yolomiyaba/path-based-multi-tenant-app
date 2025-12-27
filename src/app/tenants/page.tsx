@@ -23,7 +23,7 @@ export default function SelectTenantPage() {
     const userTenants = getUserTenantIds(session.user.email);
 
     if (userTenants.length === 0) {
-      router.push("/signup");
+      router.push("/auth/signup");
     } else if (userTenants.length === 1) {
       router.push(`/${userTenants[0]}/dashboard`);
     } else {

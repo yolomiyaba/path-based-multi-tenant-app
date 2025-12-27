@@ -61,7 +61,7 @@ async function getTenantIdFromSession(
 /**
  * テナントに依存しないグローバルパス
  */
-const globalPaths = ["/auth", "/signup", "/select-tenant"];
+const globalPaths = ["/auth", "/tenants"];
 
 /**
  * パスがグローバルパスかどうかをチェック
