@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-16">
@@ -22,6 +24,16 @@ export default function Home() {
           <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
             異なるテナントをパスベースのルーティングで提供します
           </p>
+        </div>
+
+        {/* ログインボタン */}
+        <div className="pt-8">
+          <Link
+            href="/auth/signin"
+            className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-lg transition-colors"
+          >
+            サインイン
+          </Link>
         </div>
 
         {/* 装飾的な要素 */}
