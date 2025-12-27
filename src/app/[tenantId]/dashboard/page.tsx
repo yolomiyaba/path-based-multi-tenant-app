@@ -1,4 +1,5 @@
 import { getServerSessionForTenant } from "@/lib/session";
+import { isUserBelongsToTenant } from "@/lib/users";
 import { redirect } from "next/navigation";
 import { ServerSessionInfo } from "@/components/ServerSessionInfo";
 
@@ -10,18 +11,19 @@ interface DashboardPageProps {
 
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const { tenantId } = await params;
-  
-  // セッションを取得
+
+  // セッションを取得（テナント固有認証とグローバル認証の両方に対応）
   const session = await getServerSessionForTenant(tenantId);
 
-  // 未認証の場合はリダイレクト（ミドルウェアでもチェックしていますが、念のため）
-  if (!session) {
-    redirect(`/${tenantId}/auth/signin?callbackUrl=/${tenantId}/dashboard`);
+  // 未認証の場合はリダイレクト
+  if (!session?.user?.email) {
+    redirect(`/auth/signin?callbackUrl=/${tenantId}/dashboard`);
   }
 
-  // セッションのテナントIDとパスのテナントIDが一致するか確認
-  if (session.user.tenantId !== tenantId) {
-    redirect(`/${tenantId}/auth/signin?callbackUrl=/${tenantId}/dashboard`);
+  // ユーザーがこのテナントに所属しているか確認
+  if (!isUserBelongsToTenant(session.user.email, tenantId)) {
+    // 所属していない場合はテナント選択ページへ
+    redirect("/tenants");
   }
 
   return (
