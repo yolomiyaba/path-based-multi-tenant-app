@@ -212,13 +212,15 @@ function SignupContent() {
       const data = await res.json();
 
       if (data.success) {
+        setSuccess("テナントを作成しました。ダッシュボードへ移動します...");
+        // isLoadingをtrueのまま維持して連打を防止
         window.location.href = `/${data.tenantId}/dashboard`;
       } else {
         setError(data.error || "テナント作成に失敗しました");
+        setIsLoading(false);
       }
     } catch (err) {
       setError("エラーが発生しました");
-    } finally {
       setIsLoading(false);
     }
   };
