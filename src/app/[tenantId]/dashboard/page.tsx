@@ -1,6 +1,4 @@
 import { getServerSessionForTenant } from "@/lib/session";
-import { getUserTenantIdsDirect } from "@/lib/users";
-import { redirect } from "next/navigation";
 import { ServerSessionInfo } from "@/components/ServerSessionInfo";
 
 interface DashboardPageProps {
@@ -12,21 +10,11 @@ interface DashboardPageProps {
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const { tenantId } = await params;
 
-  // セッションを取得（テナント固有認証とグローバル認証の両方に対応）
+  // セッションを取得（認証・テナント所属チェックはレイアウトで実施済み）
   const session = await getServerSessionForTenant(tenantId);
 
-  // 未認証の場合はリダイレクト
-  if (!session?.user?.email) {
-    redirect(`/auth/signin?callbackUrl=/${tenantId}/dashboard`);
-  }
-
-  // ユーザーがこのテナントに所属しているか確認
-  // キャッシュなし版を使用（テナント作成直後でもすぐに反映されるように）
-  const userTenants = await getUserTenantIdsDirect(session.user.email);
-  if (!userTenants.includes(tenantId)) {
-    // 所属していない場合はテナント選択ページへ
-    redirect("/tenants");
-  }
+  // レイアウトで認証チェック済みなのでsessionは必ず存在する
+  const user = session?.user;
 
   return (
     <div className="space-y-6">
@@ -35,7 +23,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
           ダッシュボード
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          ようこそ、<span className="font-semibold">{session.user.name || session.user.email}</span>さん
+          ようこそ、<span className="font-semibold">{user?.name || user?.email}</span>さん
         </p>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           テナントID: <span className="font-mono font-semibold">{tenantId}</span>
