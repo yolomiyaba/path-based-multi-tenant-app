@@ -101,11 +101,14 @@ export function getGlobalAuthOptions(): NextAuthOptions {
         return session;
       },
       async redirect({ url, baseUrl }) {
-        // グローバル認証では常に /auth/redirect へリダイレクト
-        // そこでテナント判定を行う
         console.log("[NextAuth Global] redirect callback - url:", url, "baseUrl:", baseUrl);
 
-        // 常に /auth/redirect へリダイレクト（テナント判定はそこで行う）
+        // 招待承認ページへのcallbackUrlの場合はそのまま戻す
+        if (url.includes("/auth/accept-invitation")) {
+          return url;
+        }
+
+        // その他の場合は /auth/redirect へリダイレクト（テナント判定はそこで行う）
         return `${baseUrl}/auth/redirect`;
       },
     },
