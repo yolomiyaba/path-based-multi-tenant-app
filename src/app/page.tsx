@@ -1,6 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { getGlobalAuthOptions } from "@/lib/auth-global";
 
-export default function Home() {
+export default async function Home() {
+  // ログイン済みの場合はテナント選択ページへリダイレクト
+  const session = await getServerSession(getGlobalAuthOptions());
+  if (session?.user?.email) {
+    redirect("/tenants");
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-16">
       <div className="max-w-4xl w-full text-center space-y-8">
