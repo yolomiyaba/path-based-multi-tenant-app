@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState, FormEvent, Suspense, useEffect } from "react";
 
 /**
@@ -18,7 +18,6 @@ function saveCallbackUrl(callbackUrl: string | null) {
 
 function SignInContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const error = searchParams?.get("error");
   const callbackUrl = searchParams?.get("callbackUrl");
 
@@ -49,8 +48,8 @@ function SignInContent() {
         setFormError("メールアドレスまたはパスワードが正しくありません");
         setIsLoading(false);
       } else if (result?.ok) {
-        // 認証成功 → 手動でリダイレクト
-        router.push("/auth/redirect");
+        // 認証成功 → ハードリダイレクトでセッションを確実に反映
+        window.location.href = "/auth/redirect";
       }
     } catch (err) {
       setFormError("ログイン中にエラーが発生しました");
