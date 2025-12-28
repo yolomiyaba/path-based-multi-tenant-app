@@ -1,5 +1,8 @@
 import { getServerSessionForTenant } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { getUserByEmail } from "@/lib/users";
+import { canInvite } from "@/lib/invitations";
+import InvitationManager from "@/components/InvitationManager";
 
 interface SettingsPageProps {
   params: Promise<{
@@ -9,7 +12,7 @@ interface SettingsPageProps {
 
 export default async function SettingsPage({ params }: SettingsPageProps) {
   const { tenantId } = await params;
-  
+
   // セッションを取得
   const session = await getServerSessionForTenant(tenantId);
 
@@ -21,6 +24,15 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   // セッションのテナントIDとパスのテナントIDが一致するか確認
   if (session.user.tenantId !== tenantId) {
     redirect(`/${tenantId}/auth/signin?callbackUrl=/${tenantId}/settings`);
+  }
+
+  // ユーザーの招待権限をチェック
+  let canManageInvitations = false;
+  if (session.user.email) {
+    const user = await getUserByEmail(session.user.email);
+    if (user) {
+      canManageInvitations = await canInvite(user.id, tenantId);
+    }
   }
 
   return (
@@ -74,6 +86,9 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
         </div>
       </div>
 
+      {/* メンバー招待 */}
+      <InvitationManager tenantId={tenantId} canManage={canManageInvitations} />
+
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           テナント設定
@@ -85,4 +100,3 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     </div>
   );
 }
-

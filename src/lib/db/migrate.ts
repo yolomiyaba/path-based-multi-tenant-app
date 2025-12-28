@@ -75,6 +75,24 @@ const migrations = [
   // メール認証トークンのインデックス
   `CREATE INDEX IF NOT EXISTS idx_email_verifications_token ON email_verifications(token)`,
   `CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email)`,
+
+  // テナント招待テーブル
+  `CREATE TABLE IF NOT EXISTS tenant_invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL DEFAULT 'member',
+    invited_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    accepted_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  )`,
+
+  // テナント招待のインデックス
+  `CREATE INDEX IF NOT EXISTS idx_tenant_invitations_token ON tenant_invitations(token)`,
+  `CREATE INDEX IF NOT EXISTS idx_tenant_invitations_email ON tenant_invitations(email)`,
+  `CREATE INDEX IF NOT EXISTS idx_tenant_invitations_tenant_id ON tenant_invitations(tenant_id)`,
 ];
 
 async function migrate() {

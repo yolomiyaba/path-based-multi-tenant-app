@@ -27,6 +27,23 @@ export const emailVerifications = pgTable("email_verifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// テナント招待テーブル
+export const tenantInvitations = pgTable("tenant_invitations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: text("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  role: text("role").default("member").notNull(), // 招待時に付与するロール
+  invitedBy: uuid("invited_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"), // 承認日時（nullは未承認）
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ユーザー・テナント関連テーブル（多対多）
 export const userTenants = pgTable(
   "user_tenants",

@@ -6,6 +6,10 @@ import {
   verificationEmailSubject,
   verificationEmailText,
   verificationEmailHtml,
+  invitationEmailSubject,
+  invitationEmailText,
+  invitationEmailHtml,
+  type InvitationEmailParams,
 } from "./templates";
 
 interface SendEmailOptions {
@@ -78,5 +82,28 @@ export async function sendVerificationEmail(
     subject: verificationEmailSubject(),
     text: verificationEmailText({ verificationUrl }),
     html: verificationEmailHtml({ verificationUrl }),
+  });
+}
+
+/**
+ * テナント招待メールを送信
+ */
+export async function sendInvitationEmail(
+  email: string,
+  token: string,
+  baseUrl: string,
+  params: Omit<InvitationEmailParams, "invitationUrl">
+): Promise<{ success: boolean; error?: string }> {
+  const invitationUrl = `${baseUrl}/auth/accept-invitation?token=${token}`;
+  const fullParams: InvitationEmailParams = {
+    ...params,
+    invitationUrl,
+  };
+
+  return sendEmail({
+    to: email,
+    subject: invitationEmailSubject(fullParams),
+    text: invitationEmailText(fullParams),
+    html: invitationEmailHtml(fullParams),
   });
 }
