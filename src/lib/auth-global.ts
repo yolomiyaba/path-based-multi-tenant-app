@@ -66,18 +66,26 @@ export function getGlobalAuthOptions(): NextAuthOptions {
     ],
     callbacks: {
       async signIn({ user, account }) {
-        // OAuth認証の場合、メールアドレスを自動的に認証済みにする
+        // OAuth認証の場合、ユーザーをDBに作成/更新
         if (account?.provider && account.provider !== "credentials" && user.email) {
           const existingUser = await getUserByEmail(user.email);
-          if (existingUser && !existingUser.emailVerified) {
-            await db
-              .update(users)
-              .set({ emailVerified: new Date() })
-              .where(eq(users.email, user.email.toLowerCase()));
+          if (existingUser) {
+            // 既存ユーザーのメール認証を更新
+            if (!existingUser.emailVerified) {
+              await db
+                .update(users)
+                .set({ emailVerified: new Date() })
+                .where(eq(users.email, user.email.toLowerCase()));
+            }
+          } else {
+            // 新規OAuthユーザーをDBに作成（メール認証済みとして）
+            await db.insert(users).values({
+              email: user.email.toLowerCase(),
+              name: user.name || null,
+              emailVerified: new Date(),
+            });
           }
         }
-        // 認証自体は許可（テナントチェックしない）
-        // 未登録ユーザーも認証を許可し、後で/signupにリダイレクト
         return true;
       },
       async jwt({ token, user, account }) {

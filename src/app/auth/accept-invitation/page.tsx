@@ -147,6 +147,18 @@ function AcceptInvitationContent() {
               </svg>
               Googleでログイン
             </button>
+            <button
+              onClick={() => signIn("azure-ad", { callbackUrl: window.location.href })}
+              className="w-full py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 23 23">
+                <path fill="#f35325" d="M1 1h10v10H1z" />
+                <path fill="#81bc06" d="M12 1h10v10H12z" />
+                <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                <path fill="#ffba08" d="M12 12h10v10H12z" />
+              </svg>
+              Microsoftでログイン
+            </button>
             <p className="text-sm text-gray-500">
               アカウントをお持ちでない方は
               <Link href={`/auth/signup?redirect=${encodeURIComponent(window.location.href)}`} className="text-blue-600 hover:underline">

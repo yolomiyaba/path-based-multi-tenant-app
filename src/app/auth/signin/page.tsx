@@ -67,7 +67,7 @@ function SignInContent() {
 
     try {
       await signIn("google", {
-        callbackUrl: "/auth/redirect",
+        callbackUrl: callbackUrl || "/auth/redirect",
         redirect: true,
       });
     } catch (err) {
@@ -82,7 +82,7 @@ function SignInContent() {
 
     try {
       await signIn("azure-ad", {
-        callbackUrl: "/auth/redirect",
+        callbackUrl: callbackUrl || "/auth/redirect",
         redirect: true,
       });
     } catch (err) {
