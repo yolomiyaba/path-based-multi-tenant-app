@@ -120,6 +120,23 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_license_keys_code ON license_keys(code)`,
   `CREATE INDEX IF NOT EXISTS idx_license_keys_email ON license_keys(email)`,
   `CREATE INDEX IF NOT EXISTS idx_license_key_otps_license_key_id ON license_key_otps(license_key_id)`,
+
+  // 課金セッションテーブル
+  `CREATE TABLE IF NOT EXISTS payment_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    session_id TEXT NOT NULL UNIQUE,
+    plan TEXT NOT NULL DEFAULT 'standard',
+    status TEXT NOT NULL DEFAULT 'pending',
+    completed_at TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  )`,
+
+  // 課金セッションのインデックス
+  `CREATE INDEX IF NOT EXISTS idx_payment_sessions_email ON payment_sessions(email)`,
+  `CREATE INDEX IF NOT EXISTS idx_payment_sessions_session_id ON payment_sessions(session_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_payment_sessions_status ON payment_sessions(status)`,
 ];
 
 async function migrate() {

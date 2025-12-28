@@ -86,6 +86,18 @@ export const licenseKeyOtps = pgTable("license_key_otps", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// 課金セッションテーブル（Stripe連携用）
+export const paymentSessions = pgTable("payment_sessions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(), // 課金対象のメールアドレス
+  sessionId: text("session_id").notNull().unique(), // Stripe Session ID
+  plan: text("plan").default("standard").notNull(), // プラン名
+  status: text("status").default("pending").notNull(), // pending, completed, expired
+  completedAt: timestamp("completed_at"), // 課金完了日時
+  expiresAt: timestamp("expires_at").notNull(), // セッション有効期限
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // リレーション定義
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   userTenants: many(userTenants),

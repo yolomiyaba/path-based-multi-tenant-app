@@ -1,23 +1,24 @@
 "use client";
 
 import { useSession, signIn, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, FormEvent, Suspense } from "react";
 import { getUserTenantIds, createUser } from "@/lib/actions/user-actions";
 
-type Step = "license" | "otp" | "tenant";
+type Step = "choose" | "license" | "otp" | "payment" | "tenant";
 
-export default function SignupPage() {
+function SignupContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // 新規アカウント作成用
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerName, setRegisterName] = useState("");
 
-  // ライセンスキー認証フロー
-  const [step, setStep] = useState<Step>("license");
+  // フロー
+  const [step, setStep] = useState<Step>("choose");
   const [licenseKey, setLicenseKey] = useState("");
   const [licenseKeyId, setLicenseKeyId] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
@@ -29,6 +30,20 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // URLパラメータから課金完了を検知
+  useEffect(() => {
+    const paymentStatus = searchParams?.get("payment");
+    if (paymentStatus === "success") {
+      setStep("tenant");
+      setSuccess("お支払いが完了しました。テナントを作成してください。");
+    } else if (paymentStatus === "cancelled") {
+      setError("お支払いがキャンセルされました。");
+    } else if (paymentStatus === "error") {
+      const errorMessage = searchParams?.get("error");
+      setError(errorMessage || "お支払い処理中にエラーが発生しました。");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (status === "loading") {
@@ -68,7 +83,6 @@ export default function SignupPage() {
             "アカウントを作成しました。メールアドレスに確認メールを送信しました。メール内のリンクをクリックして認証を完了してください。"
           );
         } else {
-          // 自動ログイン（メール認証が不要な場合）
           const signInResult = await signIn("credentials", {
             email: registerEmail,
             password: registerPassword,
@@ -151,6 +165,33 @@ export default function SignupPage() {
     }
   };
 
+  // 課金セッション作成
+  const handlePayment = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/payments/create-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "standard" }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.checkoutUrl) {
+        // 課金ページへリダイレクト
+        window.location.href = data.checkoutUrl;
+      } else {
+        setError(data.error || "課金セッションの作成に失敗しました");
+      }
+    } catch (err) {
+      setError("エラーが発生しました");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // テナント作成
   const handleCreateTenant = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -171,7 +212,6 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (data.success) {
-        // テナント作成成功 → ダッシュボードへリダイレクト
         window.location.href = `/${data.tenantId}/dashboard`;
       } else {
         setError(data.error || "テナント作成に失敗しました");
@@ -368,7 +408,7 @@ export default function SignupPage() {
     );
   }
 
-  // ログイン済み時: ライセンスキー認証 → OTP認証 → テナント作成
+  // ログイン済み時: テナント作成フロー
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -379,58 +419,6 @@ export default function SignupPage() {
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             {session?.user?.email} としてログイン中
           </p>
-        </div>
-
-        {/* ステップインジケーター */}
-        <div className="flex items-center justify-center space-x-4">
-          <div
-            className={`flex items-center ${step === "license" ? "text-blue-600" : "text-gray-400"}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === "license"
-                  ? "bg-blue-600 text-white"
-                  : step === "otp" || step === "tenant"
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-600"
-              }`}
-            >
-              {step === "otp" || step === "tenant" ? "✓" : "1"}
-            </div>
-            <span className="ml-2 text-sm">ライセンス</span>
-          </div>
-          <div className="w-8 border-t border-gray-300"></div>
-          <div
-            className={`flex items-center ${step === "otp" ? "text-blue-600" : "text-gray-400"}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === "otp"
-                  ? "bg-blue-600 text-white"
-                  : step === "tenant"
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-600"
-              }`}
-            >
-              {step === "tenant" ? "✓" : "2"}
-            </div>
-            <span className="ml-2 text-sm">認証</span>
-          </div>
-          <div className="w-8 border-t border-gray-300"></div>
-          <div
-            className={`flex items-center ${step === "tenant" ? "text-blue-600" : "text-gray-400"}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === "tenant"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-600"
-              }`}
-            >
-              3
-            </div>
-            <span className="ml-2 text-sm">作成</span>
-          </div>
         </div>
 
         {error && (
@@ -447,7 +435,51 @@ export default function SignupPage() {
           </div>
         )}
 
-        {/* Step 1: ライセンスキー入力 */}
+        {/* Step: 選択画面 */}
+        {step === "choose" && (
+          <div className="space-y-6">
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+              テナントを作成するには、ライセンスキーまたはお支払いが必要です
+            </p>
+
+            <div className="space-y-4">
+              {/* ライセンスキー入力 */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  ライセンスキーをお持ちの方
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  請求書払いでお申し込みいただいた方はこちら
+                </p>
+                <button
+                  onClick={() => setStep("license")}
+                  className="w-full flex justify-center py-2 px-4 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  ライセンスキーを入力
+                </button>
+              </div>
+
+              {/* 課金 */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  今すぐ購入
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  クレジットカードでお支払い
+                </p>
+                <button
+                  onClick={handlePayment}
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "処理中..." : "お支払いへ進む"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step: ライセンスキー入力 */}
         {step === "license" && (
           <form onSubmit={handleLicenseSubmit} className="space-y-6">
             <div>
@@ -478,10 +510,19 @@ export default function SignupPage() {
             >
               {isLoading ? "確認中..." : "次へ"}
             </button>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setStep("choose")}
+                className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+              >
+                戻る
+              </button>
+            </div>
           </form>
         )}
 
-        {/* Step 2: OTP入力 */}
+        {/* Step: OTP入力 */}
         {step === "otp" && (
           <form onSubmit={handleOtpSubmit} className="space-y-6">
             <div>
@@ -526,7 +567,7 @@ export default function SignupPage() {
           </form>
         )}
 
-        {/* Step 3: テナント作成 */}
+        {/* Step: テナント作成 */}
         {step === "tenant" && (
           <form onSubmit={handleCreateTenant} className="space-y-6">
             <div>
@@ -592,5 +633,19 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      }
+    >
+      <SignupContent />
+    </Suspense>
   );
 }

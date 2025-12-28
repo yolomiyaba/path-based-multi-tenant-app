@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getGlobalAuthOptions } from "@/lib/auth-global";
 import { db } from "@/lib/db";
-import { tenants, users, userTenants, licenseKeys, licenseKeyOtps } from "@/lib/db/schema";
-import { eq, and, gt, isNull } from "drizzle-orm";
+import { tenants, users, userTenants } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { markLicenseKeyAsUsed } from "@/lib/license-keys";
+import { canCreateTenant } from "@/lib/payments";
 
 // 予約済みパス（テナントIDとして使用不可）
 const RESERVED_PATHS = [
@@ -108,34 +109,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ユーザーが有効なライセンス（OTP認証済み）を持っているかチェック
+    // ユーザーがテナント作成権限を持っているかチェック
+    // ライセンスキー認証済み OR 課金済み
     const email = session.user.email.toLowerCase();
-    const license = await db.query.licenseKeys.findFirst({
-      where: and(
-        eq(licenseKeys.email, email),
-        isNull(licenseKeys.usedAt),
-        gt(licenseKeys.expiresAt, new Date())
-      ),
-    });
+    const permission = await canCreateTenant(email);
 
-    if (!license) {
+    if (!permission.allowed) {
       return NextResponse.json(
-        { success: false, error: "有効なライセンスキーがありません" },
-        { status: 403 }
-      );
-    }
-
-    // そのライセンスキーに対する認証済みOTPがあるかチェック
-    const verifiedOtp = await db.query.licenseKeyOtps.findFirst({
-      where: and(
-        eq(licenseKeyOtps.licenseKeyId, license.id),
-        gt(licenseKeyOtps.verifiedAt, new Date(0))
-      ),
-    });
-
-    if (!verifiedOtp) {
-      return NextResponse.json(
-        { success: false, error: "ライセンスキーのOTP認証が完了していません" },
+        { success: false, error: "テナント作成権限がありません。ライセンスキーを入力するか、お支払いを完了してください。" },
         { status: 403 }
       );
     }
@@ -170,8 +151,23 @@ export async function POST(request: NextRequest) {
       role: "owner",
     });
 
-    // ライセンスキーを使用済みにする
-    await markLicenseKeyAsUsed(license.id, user.id);
+    // ライセンスキー経由の場合、使用済みにする
+    if (permission.method === "license") {
+      const { licenseKeys } = await import("@/lib/db/schema");
+      const { and, gt, isNull } = await import("drizzle-orm");
+
+      const license = await db.query.licenseKeys.findFirst({
+        where: and(
+          eq(licenseKeys.email, email),
+          isNull(licenseKeys.usedAt),
+          gt(licenseKeys.expiresAt, new Date())
+        ),
+      });
+
+      if (license) {
+        await markLicenseKeyAsUsed(license.id, user.id);
+      }
+    }
 
     return NextResponse.json({
       success: true,
