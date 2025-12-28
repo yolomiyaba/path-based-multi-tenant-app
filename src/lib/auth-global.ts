@@ -2,7 +2,6 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
-import { getUserTenantIds, isRegisteredUser } from "./users";
 
 /**
  * テナント非指定のNextAuth設定を生成する関数
