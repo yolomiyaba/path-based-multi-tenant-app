@@ -49,9 +49,12 @@ function SignInContent() {
         setIsLoading(false);
       } else if (result?.ok) {
         // 認証成功 → callbackUrlがあればそこへ、なければ/auth/redirectへ
-        if (callbackUrl && callbackUrl.startsWith("/")) {
+        console.log("[SignIn] Auth success - callbackUrl:", callbackUrl);
+        if (callbackUrl) {
+          console.log("[SignIn] Redirecting to callbackUrl:", callbackUrl);
           window.location.href = callbackUrl;
         } else {
+          console.log("[SignIn] No callbackUrl, redirecting to /auth/redirect");
           window.location.href = "/auth/redirect";
         }
       }
