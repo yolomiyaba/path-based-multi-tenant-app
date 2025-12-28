@@ -66,7 +66,7 @@ function isGlobalPath(pathname: string): boolean {
   return globalPaths.some((path) => pathname.startsWith(path));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // グローバルパス（/auth/, /signup, /select-tenant）はそのまま通過
