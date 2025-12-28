@@ -93,6 +93,33 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_tenant_invitations_token ON tenant_invitations(token)`,
   `CREATE INDEX IF NOT EXISTS idx_tenant_invitations_email ON tenant_invitations(email)`,
   `CREATE INDEX IF NOT EXISTS idx_tenant_invitations_tenant_id ON tenant_invitations(tenant_id)`,
+
+  // ライセンスキーテーブル
+  `CREATE TABLE IF NOT EXISTS license_keys (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
+    plan TEXT NOT NULL DEFAULT 'standard',
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    used_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  )`,
+
+  // ライセンスキーOTPテーブル
+  `CREATE TABLE IF NOT EXISTS license_key_otps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    license_key_id UUID NOT NULL REFERENCES license_keys(id) ON DELETE CASCADE,
+    otp TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    verified_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  )`,
+
+  // ライセンスキーのインデックス
+  `CREATE INDEX IF NOT EXISTS idx_license_keys_code ON license_keys(code)`,
+  `CREATE INDEX IF NOT EXISTS idx_license_keys_email ON license_keys(email)`,
+  `CREATE INDEX IF NOT EXISTS idx_license_key_otps_license_key_id ON license_key_otps(license_key_id)`,
 ];
 
 async function migrate() {

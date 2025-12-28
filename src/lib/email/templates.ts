@@ -150,6 +150,51 @@ ${urlFallback(params.invitationUrl)}
 }
 
 // ============================================
+// ライセンスキーOTPテンプレート
+// ============================================
+
+export interface LicenseOtpEmailParams {
+  otp: string;
+}
+
+export function licenseOtpEmailSubject(): string {
+  return `【${APP_NAME}】ライセンス認証コード`;
+}
+
+export function licenseOtpEmailText(params: LicenseOtpEmailParams): string {
+  return `
+ライセンスキーの認証コードをお送りします。
+
+認証コード: ${params.otp}
+
+このコードは10分間有効です。
+
+このメールに心当たりがない場合は、無視してください。
+
+---
+${APP_NAME}
+`.trim();
+}
+
+export function licenseOtpEmailHtml(params: LicenseOtpEmailParams): string {
+  const content = `
+<p>ライセンスキーの認証コードをお送りします。</p>
+<div style="text-align: center; margin: 30px 0;">
+  <div style="background-color: #f5f5f5; padding: 20px 40px; border-radius: 8px; display: inline-block;">
+    <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: ${BRAND_COLOR};">${params.otp}</span>
+  </div>
+</div>
+<p style="color: #666; font-size: 14px; text-align: center;">このコードは10分間有効です。</p>
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+<p style="color: #999; font-size: 12px;">
+  このメールに心当たりがない場合は、無視してください。
+</p>
+`.trim();
+
+  return baseLayout(content);
+}
+
+// ============================================
 // パスワードリセットテンプレート（将来用）
 // ============================================
 

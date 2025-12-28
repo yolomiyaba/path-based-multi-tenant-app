@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, FormEvent } from "react";
 import { getUserTenantIds, createUser } from "@/lib/actions/user-actions";
 
+type Step = "license" | "otp" | "tenant";
+
 export default function SignupPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -14,8 +16,15 @@ export default function SignupPage() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerName, setRegisterName] = useState("");
 
+  // ライセンスキー認証フロー
+  const [step, setStep] = useState<Step>("license");
+  const [licenseKey, setLicenseKey] = useState("");
+  const [licenseKeyId, setLicenseKeyId] = useState<string | null>(null);
+  const [otp, setOtp] = useState("");
+
   // テナント作成用
-  const [newTenantName, setNewTenantName] = useState("");
+  const [tenantId, setTenantId] = useState("");
+  const [tenantName, setTenantName] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -47,7 +56,11 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const result = await createUser(registerEmail, registerPassword, registerName);
+      const result = await createUser(
+        registerEmail,
+        registerPassword,
+        registerName
+      );
 
       if (result.success) {
         if (result.requiresVerification) {
@@ -65,7 +78,9 @@ export default function SignupPage() {
           if (signInResult?.ok) {
             router.push("/auth/redirect");
           } else {
-            setSuccess("アカウントを作成しました。ログインページからログインしてください。");
+            setSuccess(
+              "アカウントを作成しました。ログインページからログインしてください。"
+            );
           }
         }
       } else {
@@ -78,17 +93,115 @@ export default function SignupPage() {
     }
   };
 
-  const handleCreateSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  // ライセンスキー検証・OTP送信
+  const handleLicenseSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
     try {
-      // TODO: テナント作成APIを呼び出す
-      if (newTenantName.length < 3) {
-        setError("テナント名は3文字以上で入力してください");
+      const res = await fetch("/api/auth/license/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: licenseKey }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setLicenseKeyId(data.licenseKeyId);
+        setStep("otp");
+        setSuccess("認証コードをメールに送信しました");
       } else {
-        setError("デモモードです。実際のテナント作成機能は未実装です。");
+        setError(data.error || "ライセンスキーの検証に失敗しました");
+      }
+    } catch (err) {
+      setError("エラーが発生しました");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // OTP検証
+  const handleOtpSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/license/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ licenseKeyId, otp }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStep("tenant");
+        setSuccess("認証が完了しました。テナントを作成してください");
+      } else {
+        setError(data.error || "認証コードの検証に失敗しました");
+      }
+    } catch (err) {
+      setError("エラーが発生しました");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // テナント作成
+  const handleCreateTenant = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/tenants/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantId: tenantId,
+          tenantName: tenantName || tenantId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // テナント作成成功 → ダッシュボードへリダイレクト
+        window.location.href = `/${data.tenantId}/dashboard`;
+      } else {
+        setError(data.error || "テナント作成に失敗しました");
+      }
+    } catch (err) {
+      setError("エラーが発生しました");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // OTP再送信
+  const handleResendOtp = async () => {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/license/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: licenseKey }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setSuccess("認証コードを再送信しました");
+      } else {
+        setError(data.error || "認証コードの送信に失敗しました");
       }
     } catch (err) {
       setError("エラーが発生しました");
@@ -125,13 +238,17 @@ export default function SignupPage() {
 
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <div className="text-sm text-red-800 dark:text-red-200">{error}</div>
+              <div className="text-sm text-red-800 dark:text-red-200">
+                {error}
+              </div>
             </div>
           )}
 
           {success && (
             <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
-              <div className="text-sm text-green-800 dark:text-green-200">{success}</div>
+              <div className="text-sm text-green-800 dark:text-green-200">
+                {success}
+              </div>
             </div>
           )}
 
@@ -251,7 +368,7 @@ export default function SignupPage() {
     );
   }
 
-  // ログイン済み時: テナント作成画面
+  // ログイン済み時: ライセンスキー認証 → OTP認証 → テナント作成
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -262,9 +379,58 @@ export default function SignupPage() {
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             {session?.user?.email} としてログイン中
           </p>
-          <p className="mt-1 text-center text-sm text-gray-500 dark:text-gray-500">
-            新しいテナントを作成してください
-          </p>
+        </div>
+
+        {/* ステップインジケーター */}
+        <div className="flex items-center justify-center space-x-4">
+          <div
+            className={`flex items-center ${step === "license" ? "text-blue-600" : "text-gray-400"}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                step === "license"
+                  ? "bg-blue-600 text-white"
+                  : step === "otp" || step === "tenant"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              {step === "otp" || step === "tenant" ? "✓" : "1"}
+            </div>
+            <span className="ml-2 text-sm">ライセンス</span>
+          </div>
+          <div className="w-8 border-t border-gray-300"></div>
+          <div
+            className={`flex items-center ${step === "otp" ? "text-blue-600" : "text-gray-400"}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                step === "otp"
+                  ? "bg-blue-600 text-white"
+                  : step === "tenant"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              {step === "tenant" ? "✓" : "2"}
+            </div>
+            <span className="ml-2 text-sm">認証</span>
+          </div>
+          <div className="w-8 border-t border-gray-300"></div>
+          <div
+            className={`flex items-center ${step === "tenant" ? "text-blue-600" : "text-gray-400"}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                step === "tenant"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              3
+            </div>
+            <span className="ml-2 text-sm">作成</span>
+          </div>
         </div>
 
         {error && (
@@ -273,36 +439,148 @@ export default function SignupPage() {
           </div>
         )}
 
-        <form onSubmit={handleCreateSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="tenantName"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              テナント名
-            </label>
-            <input
-              id="tenantName"
-              type="text"
-              value={newTenantName}
-              onChange={(e) => setNewTenantName(e.target.value)}
-              placeholder="例: my-company"
-              required
-              disabled={isLoading}
-              className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50"
-            />
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              URLに使用されます（英数字とハイフンのみ）
-            </p>
+        {success && (
+          <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
+            <div className="text-sm text-green-800 dark:text-green-200">
+              {success}
+            </div>
           </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? "処理中..." : "テナントを作成"}
-          </button>
-        </form>
+        )}
+
+        {/* Step 1: ライセンスキー入力 */}
+        {step === "license" && (
+          <form onSubmit={handleLicenseSubmit} className="space-y-6">
+            <div>
+              <label
+                htmlFor="licenseKey"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                ライセンスキー
+              </label>
+              <input
+                id="licenseKey"
+                type="text"
+                value={licenseKey}
+                onChange={(e) => setLicenseKey(e.target.value)}
+                placeholder="ライセンスキーを入力"
+                required
+                disabled={isLoading}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50 font-mono"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                お申し込み時にお送りしたライセンスキーを入力してください
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "確認中..." : "次へ"}
+            </button>
+          </form>
+        )}
+
+        {/* Step 2: OTP入力 */}
+        {step === "otp" && (
+          <form onSubmit={handleOtpSubmit} className="space-y-6">
+            <div>
+              <label
+                htmlFor="otp"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                認証コード
+              </label>
+              <input
+                id="otp"
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="6桁の認証コード"
+                required
+                maxLength={6}
+                disabled={isLoading}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50 font-mono text-center text-2xl tracking-widest"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                メールに送信された6桁の認証コードを入力してください
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading || otp.length !== 6}
+              className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "確認中..." : "認証する"}
+            </button>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={isLoading}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+              >
+                認証コードを再送信
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Step 3: テナント作成 */}
+        {step === "tenant" && (
+          <form onSubmit={handleCreateTenant} className="space-y-6">
+            <div>
+              <label
+                htmlFor="tenantId"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                テナントID
+              </label>
+              <input
+                id="tenantId"
+                type="text"
+                value={tenantId}
+                onChange={(e) =>
+                  setTenantId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))
+                }
+                placeholder="例: my-company"
+                required
+                disabled={isLoading}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                URLに使用されます（英小文字、数字、ハイフンのみ）
+              </p>
+            </div>
+            <div>
+              <label
+                htmlFor="tenantName"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                テナント名（任意）
+              </label>
+              <input
+                id="tenantName"
+                type="text"
+                value={tenantName}
+                onChange={(e) => setTenantName(e.target.value)}
+                placeholder="例: マイカンパニー株式会社"
+                disabled={isLoading}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                表示用の名前です。空欄の場合はテナントIDが使用されます
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading || tenantId.length < 3}
+              className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "作成中..." : "テナントを作成"}
+            </button>
+          </form>
+        )}
 
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
