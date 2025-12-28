@@ -48,8 +48,12 @@ function SignInContent() {
         setFormError("メールアドレスまたはパスワードが正しくありません");
         setIsLoading(false);
       } else if (result?.ok) {
-        // 認証成功 → ハードリダイレクトでセッションを確実に反映
-        window.location.href = "/auth/redirect";
+        // 認証成功 → callbackUrlがあればそこへ、なければ/auth/redirectへ
+        if (callbackUrl && callbackUrl.startsWith("/")) {
+          window.location.href = callbackUrl;
+        } else {
+          window.location.href = "/auth/redirect";
+        }
       }
     } catch (err) {
       setFormError("ログイン中にエラーが発生しました");
