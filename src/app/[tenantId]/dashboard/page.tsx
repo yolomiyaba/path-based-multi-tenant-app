@@ -30,28 +30,16 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
         <Link
           href={`/${tenantId}/settings`}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+          className="inline-block bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
         >
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
             設定
           </h3>
           <p className="text-gray-600 dark:text-gray-400">
             テナント設定を管理できます
-          </p>
-        </Link>
-
-        <Link
-          href="/profile"
-          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-        >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            プロフィール
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            アカウント情報を確認できます
           </p>
         </Link>
       </div>

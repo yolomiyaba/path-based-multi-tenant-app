@@ -33,9 +33,12 @@ export function HeaderAuth() {
 
     return (
         <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-700 dark:text-gray-300">
+            <Link
+                href="/profile"
+                className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
                 {session.user.email || session.user.name}
-            </span>
+            </Link>
             <LogoutButton />
         </div>
     );
