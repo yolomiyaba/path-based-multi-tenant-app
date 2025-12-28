@@ -130,12 +130,12 @@ function AcceptInvitationContent() {
             <p className="text-sm text-gray-500">
               招待を承認するにはログインが必要です
             </p>
-            <button
-              onClick={() => signIn("credentials", { callbackUrl: window.location.href })}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            <Link
+              href={`/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`}
+              className="block w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-center"
             >
               ログイン
-            </button>
+            </Link>
             <button
               onClick={() => signIn("google", { callbackUrl: window.location.href })}
               className="w-full py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2"
