@@ -56,6 +56,9 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_user_tenants_user_id ON user_tenants(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_user_tenants_tenant_id ON user_tenants(tenant_id)`,
   `CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
+
+  // password_hashカラム追加（既存テーブルへのマイグレーション）
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`,
 ];
 
 async function migrate() {

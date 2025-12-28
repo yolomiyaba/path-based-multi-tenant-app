@@ -72,3 +72,12 @@ export async function isRegisteredUser(email: string): Promise<boolean> {
   });
   return user !== undefined;
 }
+
+/**
+ * メールアドレスでユーザーを取得（認証用）
+ */
+export async function getUserByEmail(email: string) {
+  return db.query.users.findFirst({
+    where: eq(users.email, email.toLowerCase()),
+  });
+}

@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name"),
+  passwordHash: text("password_hash"), // OAuth専用ユーザーはnull
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

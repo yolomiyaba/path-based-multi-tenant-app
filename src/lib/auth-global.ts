@@ -2,6 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
+import { getUserByEmail } from "./users";
+import { verifyPassword } from "./auth/password";
 
 /**
  * テナント非指定のNextAuth設定を生成する関数
@@ -21,42 +23,27 @@ export function getGlobalAuthOptions(): NextAuthOptions {
             return null;
           }
 
-          // デモ用の簡単な認証（本番環境では適切な認証を実装してください）
-          const validCredentials =
-            credentials.email === "admin@example.com" ||
-            credentials.email === "devleadxaid@gmail.com" ||
-            credentials.email === "user1@example.com" ||
-            credentials.email === "user2@example.com" ||
-            credentials.email === "user3@example.com";
-
-          if (validCredentials && credentials.password === "password") {
-            let id: string, name: string;
-            if (credentials.email === "admin@example.com") {
-              id = "1";
-              name = "Admin User";
-            } else if (credentials.email === "user1@example.com") {
-              id = "2";
-              name = "User 1";
-            } else if (credentials.email === "user2@example.com") {
-              id = "3";
-              name = "User 2";
-            } else if (credentials.email === "devleadxaid@gmail.com") {
-              id = "5";
-              name = "Dev Lead";
-            } else {
-              id = "4";
-              name = "User 3";
-            }
-
-            // テナントIDは後で判定するため、ここでは設定しない
-            return {
-              id,
-              email: credentials.email,
-              name,
-            };
+          // DBからユーザーを取得
+          const user = await getUserByEmail(credentials.email);
+          if (!user || !user.passwordHash) {
+            // ユーザーが存在しない、またはパスワード未設定（OAuth専用）
+            return null;
           }
 
-          return null;
+          // パスワード検証
+          const isValid = await verifyPassword(
+            credentials.password,
+            user.passwordHash
+          );
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
         },
       }),
       GoogleProvider({

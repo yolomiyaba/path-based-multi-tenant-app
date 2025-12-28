@@ -12,6 +12,7 @@ import {
   RDSDataClient,
   ExecuteStatementCommand,
 } from "@aws-sdk/client-rds-data";
+import bcrypt from "bcryptjs";
 
 const client = new RDSDataClient({ region: process.env.AWS_REGION });
 
@@ -36,13 +37,16 @@ const INITIAL_TENANTS = [
   { id: "tenant3", name: "Tenant 3" },
 ];
 
-const INITIAL_USERS: { email: string; tenants: string[] }[] = [
-  { email: "admin@example.com", tenants: ["tenant1"] },
-  { email: "devleadxaid@gmail.com", tenants: ["tenant1", "tenant2"] },
-  { email: "lx-test-1@saixaid.com", tenants: ["tenant1"] },
-  { email: "user1@example.com", tenants: ["tenant1"] },
-  { email: "user2@example.com", tenants: ["tenant2"] },
-  { email: "user3@example.com", tenants: ["tenant3"] },
+// デフォルトパスワード（開発環境用）
+const DEFAULT_PASSWORD = "password";
+
+const INITIAL_USERS: { email: string; name: string; tenants: string[] }[] = [
+  { email: "admin@example.com", name: "Admin User", tenants: ["tenant1"] },
+  { email: "devleadxaid@gmail.com", name: "Dev Lead", tenants: ["tenant1", "tenant2"] },
+  { email: "lx-test-1@saixaid.com", name: "Test User 1", tenants: ["tenant1"] },
+  { email: "user1@example.com", name: "User 1", tenants: ["tenant1"] },
+  { email: "user2@example.com", name: "User 2", tenants: ["tenant2"] },
+  { email: "user3@example.com", name: "User 3", tenants: ["tenant3"] },
 ];
 
 async function seed() {
@@ -65,22 +69,32 @@ async function seed() {
     }
   }
 
+  // パスワードハッシュを事前に生成
+  console.log("Generating password hash...");
+  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 12);
+  console.log(`  ✅ Password hash generated`);
+
   // ユーザーとテナント関連作成
   console.log("Creating users and associations...");
   for (const userData of INITIAL_USERS) {
     try {
-      // ユーザー作成（既存の場合は更新しない）
+      // ユーザー作成（既存の場合はパスワードハッシュを更新）
       const insertUserResult = await executeSQL(
-        `INSERT INTO users (email) VALUES (:email) ON CONFLICT (email) DO NOTHING RETURNING id`,
-        [{ name: "email", value: { stringValue: userData.email } }]
+        `INSERT INTO users (email, name, password_hash) VALUES (:email, :name, :passwordHash)
+         ON CONFLICT (email) DO UPDATE SET password_hash = :passwordHash, name = :name
+         RETURNING id`,
+        [
+          { name: "email", value: { stringValue: userData.email } },
+          { name: "name", value: { stringValue: userData.name } },
+          { name: "passwordHash", value: { stringValue: passwordHash } },
+        ]
       );
 
       let userId: string;
       if (insertUserResult.records && insertUserResult.records.length > 0) {
-        // 新規作成された
         userId = insertUserResult.records[0][0].stringValue!;
       } else {
-        // 既存ユーザーのIDを取得
+        // フォールバック（通常は到達しない）
         const existingUser = await executeSQL(
           `SELECT id FROM users WHERE email = :email`,
           [{ name: "email", value: { stringValue: userData.email } }]
