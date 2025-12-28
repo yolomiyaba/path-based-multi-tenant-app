@@ -78,7 +78,7 @@ export default function SelectTenantPage() {
               className="w-full flex items-center justify-between px-4 py-4 border border-gray-300 dark:border-gray-700 rounded-lg text-left bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-500 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
             >
               <div className="flex items-center">
-                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                <div className="shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                   <span className="text-blue-600 dark:text-blue-400 font-semibold text-sm">
                     {tenantId.charAt(0).toUpperCase()}
                   </span>
