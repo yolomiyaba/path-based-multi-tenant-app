@@ -7,16 +7,9 @@
 import { db } from "@/lib/db";
 import { paymentSessions } from "@/lib/db/schema";
 import { eq, and, gt } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import { generatePaymentSessionId } from "@/lib/crypto";
 
 const SESSION_EXPIRY_HOURS = 24;
-
-/**
- * モック用のセッションIDを生成
- */
-function generateSessionId(): string {
-  return `cs_mock_${randomBytes(16).toString("hex")}`;
-}
 
 /**
  * 課金セッションを作成（Stripe Checkout Session相当）
@@ -33,7 +26,7 @@ export async function createPaymentSession(
   error?: string;
 }> {
   try {
-    const sessionId = generateSessionId();
+    const sessionId = generatePaymentSessionId();
     const expiresAt = new Date(Date.now() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000);
 
     await db.insert(paymentSessions).values({

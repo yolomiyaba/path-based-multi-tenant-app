@@ -5,20 +5,13 @@
 import { db } from "@/lib/db";
 import { tenantInvitations, userTenants, users, tenants } from "@/lib/db/schema";
 import { eq, and, gt, isNull } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import { generateSecureToken } from "@/lib/crypto";
 
 const INVITATION_EXPIRY_DAYS = 7;
 
 // 招待可能なロール
 export const ROLES_CAN_INVITE = ["owner", "admin"] as const;
 export type Role = "owner" | "admin" | "member";
-
-/**
- * 安全なランダムトークンを生成
- */
-function generateToken(): string {
-  return randomBytes(32).toString("hex");
-}
 
 /**
  * ユーザーのテナントでのロールを取得
@@ -96,7 +89,7 @@ export async function createInvitation(
       );
 
     // 新しい招待を作成
-    const token = generateToken();
+    const token = generateSecureToken();
     const expiresAt = new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
     await db.insert(tenantInvitations).values({

@@ -5,22 +5,15 @@
 import { db } from "@/lib/db";
 import { emailVerifications, users } from "@/lib/db/schema";
 import { eq, and, gt } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import { generateSecureToken } from "@/lib/crypto";
 
 const TOKEN_EXPIRY_HOURS = 24;
-
-/**
- * 安全なランダムトークンを生成
- */
-function generateToken(): string {
-  return randomBytes(32).toString("hex");
-}
 
 /**
  * メール認証トークンを作成してDBに保存
  */
 export async function createVerificationToken(email: string): Promise<string> {
-  const token = generateToken();
+  const token = generateSecureToken();
   const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 
   // 既存のトークンを削除（同じメールアドレスに対する古いトークン）

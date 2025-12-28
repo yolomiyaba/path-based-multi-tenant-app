@@ -4,9 +4,9 @@
  */
 
 import { db } from "@/lib/db";
-import { licenseKeys, licenseKeyOtps, users } from "@/lib/db/schema";
+import { licenseKeys, licenseKeyOtps } from "@/lib/db/schema";
 import { eq, and, gt, isNull } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import { generateLicenseKey, generateOtp } from "@/lib/crypto";
 import { sendEmail } from "@/lib/email/mailgun";
 import {
   licenseOtpEmailSubject,
@@ -16,19 +16,8 @@ import {
 
 const OTP_EXPIRY_MINUTES = 10;
 
-/**
- * ランダムなライセンスキーを生成（32文字）
- */
-export function generateLicenseKey(): string {
-  return randomBytes(16).toString("hex");
-}
-
-/**
- * 6桁のOTPを生成
- */
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+// crypto.ts から再エクスポート
+export { generateLicenseKey } from "@/lib/crypto";
 
 /**
  * ライセンスキーを検証（存在確認・有効期限・未使用チェック）
