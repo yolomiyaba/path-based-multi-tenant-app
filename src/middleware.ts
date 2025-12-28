@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { isValidTenant } from "@/lib/tenants";
-import { getAuthOptions } from "@/lib/auth";
 
 /**
  * 認証が必要なパス（テナント配下）
@@ -38,7 +37,7 @@ function isPublicPath(pathname: string): boolean {
 }
 
 /**
- * セッションが存在するかチェック（テナントIDは問わない）
+ * セッションが存在するかチェック（グローバル認証）
  */
 async function hasValidSession(request: NextRequest): Promise<boolean> {
   try {
@@ -52,27 +51,6 @@ async function hasValidSession(request: NextRequest): Promise<boolean> {
   } catch (error) {
     console.error("Error checking session:", error);
     return false;
-  }
-}
-
-/**
- * セッションからテナントIDを取得（テナント指定ログイン用）
- */
-async function getTenantIdFromSession(
-  request: NextRequest,
-  tenantId: string
-): Promise<string | null> {
-  try {
-    const authOptions = getAuthOptions(tenantId);
-    const token = await getToken({
-      req: request,
-      secret: authOptions.secret,
-    });
-
-    return token?.tenantId as string | null;
-  } catch (error) {
-    console.error("Error getting tenant ID from session:", error);
-    return null;
   }
 }
 
@@ -124,7 +102,6 @@ export async function middleware(request: NextRequest) {
 
   // 保護されたパスの場合、認証チェック
   if (isProtectedPath(pathname)) {
-    // まずセッションが存在するかチェック（グローバル認証対応）
     const hasSession = await hasValidSession(request);
 
     if (!hasSession) {
@@ -134,19 +111,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(signInUrl);
     }
 
-    // セッションがある場合、テナント固有のセッションかチェック
-    const sessionTenantId = await getTenantIdFromSession(request, tenantId);
-
-    // テナント固有のセッションがあり、テナントIDが一致しない場合
-    if (sessionTenantId && sessionTenantId !== tenantId) {
-      return NextResponse.json(
-        { error: "Tenant mismatch" },
-        { status: 403 }
-      );
-    }
-
-    // グローバル認証（sessionTenantId === null）の場合は通過を許可
-    // ページ側でテナント所属チェックを行う
+    // セッションがある場合は通過を許可
+    // テナント所属チェックはページ側で行う
   }
 
   return NextResponse.next();
