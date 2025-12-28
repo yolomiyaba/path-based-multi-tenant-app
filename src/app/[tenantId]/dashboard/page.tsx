@@ -1,5 +1,5 @@
+import Link from "next/link";
 import { getServerSessionForTenant } from "@/lib/session";
-import { ServerSessionInfo } from "@/components/ServerSessionInfo";
 
 interface DashboardPageProps {
   params: Promise<{
@@ -30,35 +30,30 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         </p>
       </div>
 
-      <ServerSessionInfo tenantId={tenantId} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            統計情報
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            テナント固有の統計情報がここに表示されます
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link
+          href={`/${tenantId}/settings`}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+        >
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
             設定
           </h3>
           <p className="text-gray-600 dark:text-gray-400">
             テナント設定を管理できます
           </p>
-        </div>
+        </Link>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <Link
+          href={`/${tenantId}/profile`}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+        >
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            ユーザー管理
+            プロフィール
           </h3>
           <p className="text-gray-600 dark:text-gray-400">
-            テナントのユーザーを管理できます
+            アカウント情報を確認できます
           </p>
-        </div>
+        </Link>
       </div>
     </div>
   );
