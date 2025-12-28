@@ -1,6 +1,6 @@
 "use server";
 
-import { getUserTenantIds as _getUserTenantIds, isUserBelongsToTenant as _isUserBelongsToTenant, getUserByEmail } from "@/lib/users";
+import { getUserTenantIdsDirect, getUserByEmail } from "@/lib/users";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
@@ -10,9 +10,10 @@ import { headers } from "next/headers";
 
 /**
  * ユーザーの所属テナントIDリストを取得（Server Action）
+ * キャッシュなし版を使用（テナント作成直後でもすぐに反映されるように）
  */
 export async function getUserTenantIds(email: string): Promise<string[]> {
-  return _getUserTenantIds(email);
+  return getUserTenantIdsDirect(email);
 }
 
 /**
@@ -22,7 +23,8 @@ export async function isUserBelongsToTenant(
   email: string,
   tenantId: string
 ): Promise<boolean> {
-  return _isUserBelongsToTenant(email, tenantId);
+  const tenantIds = await getUserTenantIdsDirect(email);
+  return tenantIds.includes(tenantId);
 }
 
 /**

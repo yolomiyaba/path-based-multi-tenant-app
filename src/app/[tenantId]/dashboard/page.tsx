@@ -1,5 +1,5 @@
 import { getServerSessionForTenant } from "@/lib/session";
-import { isUserBelongsToTenant } from "@/lib/users";
+import { getUserTenantIdsDirect } from "@/lib/users";
 import { redirect } from "next/navigation";
 import { ServerSessionInfo } from "@/components/ServerSessionInfo";
 
@@ -21,7 +21,9 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   }
 
   // ユーザーがこのテナントに所属しているか確認
-  if (!(await isUserBelongsToTenant(session.user.email, tenantId))) {
+  // キャッシュなし版を使用（テナント作成直後でもすぐに反映されるように）
+  const userTenants = await getUserTenantIdsDirect(session.user.email);
+  if (!userTenants.includes(tenantId)) {
     // 所属していない場合はテナント選択ページへ
     redirect("/tenants");
   }

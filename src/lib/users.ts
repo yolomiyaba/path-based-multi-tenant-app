@@ -19,19 +19,27 @@ export async function isUserBelongsToTenant(
 }
 
 /**
- * ユーザーの所属テナントIDリストを取得
+ * ユーザーの所属テナントIDリストを取得（キャッシュなし版）
+ * テナント作成直後などキャッシュをバイパスしたい場合に使用
+ */
+export async function getUserTenantIdsDirect(email: string): Promise<string[]> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, email.toLowerCase()),
+    with: {
+      userTenants: true,
+    },
+  });
+
+  if (!user) return [];
+  return user.userTenants.map((ut) => ut.tenantId);
+}
+
+/**
+ * ユーザーの所属テナントIDリストを取得（キャッシュあり）
  */
 export const getUserTenantIds = unstable_cache(
   async (email: string): Promise<string[]> => {
-    const user = await db.query.users.findFirst({
-      where: eq(users.email, email.toLowerCase()),
-      with: {
-        userTenants: true,
-      },
-    });
-
-    if (!user) return [];
-    return user.userTenants.map((ut) => ut.tenantId);
+    return getUserTenantIdsDirect(email);
   },
   ["user-tenants"],
   { revalidate: 60 }
