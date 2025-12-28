@@ -4,6 +4,9 @@ import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import { getUserByEmail } from "./users";
 import { verifyPassword } from "./auth/password";
+import { db } from "./db";
+import { users } from "./db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * テナント非指定のNextAuth設定を生成する関数
@@ -39,6 +42,11 @@ export function getGlobalAuthOptions(): NextAuthOptions {
             return null;
           }
 
+          // メール認証チェック
+          if (!user.emailVerified) {
+            throw new Error("メールアドレスが認証されていません。確認メールをご確認ください。");
+          }
+
           return {
             id: user.id,
             email: user.email,
@@ -57,7 +65,17 @@ export function getGlobalAuthOptions(): NextAuthOptions {
       }),
     ],
     callbacks: {
-      async signIn({ user }) {
+      async signIn({ user, account }) {
+        // OAuth認証の場合、メールアドレスを自動的に認証済みにする
+        if (account?.provider && account.provider !== "credentials" && user.email) {
+          const existingUser = await getUserByEmail(user.email);
+          if (existingUser && !existingUser.emailVerified) {
+            await db
+              .update(users)
+              .set({ emailVerified: new Date() })
+              .where(eq(users.email, user.email.toLowerCase()));
+          }
+        }
         // 認証自体は許可（テナントチェックしない）
         // 未登録ユーザーも認証を許可し、後で/signupにリダイレクト
         return true;

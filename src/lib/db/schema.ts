@@ -14,6 +14,16 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name"),
   passwordHash: text("password_hash"), // OAuth専用ユーザーはnull
+  emailVerified: timestamp("email_verified"), // メール認証完了日時（nullは未認証）
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// メール認証トークンテーブル
+export const emailVerifications = pgTable("email_verifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

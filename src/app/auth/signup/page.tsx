@@ -57,18 +57,23 @@ export default function SignupPage() {
       const result = await createUser(registerEmail, registerPassword, registerName);
 
       if (result.success) {
-        setSuccess("アカウントを作成しました。ログインしてください。");
-        // 自動ログイン
-        const signInResult = await signIn("credentials", {
-          email: registerEmail,
-          password: registerPassword,
-          redirect: false,
-        });
-
-        if (signInResult?.ok) {
-          router.push("/auth/redirect");
+        if (result.requiresVerification) {
+          setSuccess(
+            "アカウントを作成しました。メールアドレスに確認メールを送信しました。メール内のリンクをクリックして認証を完了してください。"
+          );
         } else {
-          setSuccess("アカウントを作成しました。ログインページからログインしてください。");
+          // 自動ログイン（メール認証が不要な場合）
+          const signInResult = await signIn("credentials", {
+            email: registerEmail,
+            password: registerPassword,
+            redirect: false,
+          });
+
+          if (signInResult?.ok) {
+            router.push("/auth/redirect");
+          } else {
+            setSuccess("アカウントを作成しました。ログインページからログインしてください。");
+          }
         }
       } else {
         setError(result.error || "アカウント作成に失敗しました");

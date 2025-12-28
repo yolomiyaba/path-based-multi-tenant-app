@@ -59,6 +59,22 @@ const migrations = [
 
   // password_hashカラム追加（既存テーブルへのマイグレーション）
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`,
+
+  // email_verifiedカラム追加（メール認証用）
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified TIMESTAMP`,
+
+  // メール認証トークンテーブル
+  `CREATE TABLE IF NOT EXISTS email_verifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  )`,
+
+  // メール認証トークンのインデックス
+  `CREATE INDEX IF NOT EXISTS idx_email_verifications_token ON email_verifications(token)`,
+  `CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email)`,
 ];
 
 async function migrate() {

@@ -4,6 +4,9 @@ import { getUserTenantIds as _getUserTenantIds, isUserBelongsToTenant as _isUser
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
+import { createVerificationToken } from "@/lib/auth/email-verification";
+import { sendVerificationEmail } from "@/lib/email/mailgun";
+import { headers } from "next/headers";
 
 /**
  * ユーザーの所属テナントIDリストを取得（Server Action）
@@ -29,7 +32,7 @@ export async function createUser(
   email: string,
   password: string,
   name: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; requiresVerification?: boolean }> {
   try {
     // メールアドレスの正規化
     const normalizedEmail = email.toLowerCase().trim();
@@ -55,7 +58,20 @@ export async function createUser(
       passwordHash,
     });
 
-    return { success: true };
+    // メール認証トークンを作成して送信
+    const token = await createVerificationToken(normalizedEmail);
+    const headersList = await headers();
+    const host = headersList.get("host") || "localhost:3000";
+    const protocol = headersList.get("x-forwarded-proto") || "http";
+    const baseUrl = `${protocol}://${host}`;
+
+    const emailResult = await sendVerificationEmail(normalizedEmail, token, baseUrl);
+    if (!emailResult.success) {
+      console.warn("Failed to send verification email:", emailResult.error);
+      // メール送信に失敗してもアカウント作成は成功とする
+    }
+
+    return { success: true, requiresVerification: true };
   } catch (error) {
     console.error("Failed to create user:", error);
     return { success: false, error: "ユーザー作成に失敗しました" };
