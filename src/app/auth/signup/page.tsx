@@ -71,10 +71,12 @@ function SignupContent() {
     setIsLoading(true);
 
     try {
+      const redirectUrl = searchParams?.get("redirect") || undefined;
       const result = await createUser(
         registerEmail,
         registerPassword,
-        registerName
+        registerName,
+        redirectUrl
       );
 
       if (result.success) {
@@ -372,7 +374,7 @@ function SignupContent() {
 
           <div className="space-y-3">
             <button
-              onClick={() => signIn("google", { callbackUrl: "/auth/redirect" })}
+              onClick={() => signIn("google", { callbackUrl: searchParams?.get("redirect") || "/auth/redirect" })}
               className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -396,7 +398,7 @@ function SignupContent() {
               Googleで登録
             </button>
             <button
-              onClick={() => signIn("azure-ad", { callbackUrl: "/auth/redirect" })}
+              onClick={() => signIn("azure-ad", { callbackUrl: searchParams?.get("redirect") || "/auth/redirect" })}
               className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <svg className="w-5 h-5" viewBox="0 0 23 23">

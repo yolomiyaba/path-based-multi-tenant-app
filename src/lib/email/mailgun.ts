@@ -69,13 +69,18 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
 
 /**
  * メール認証用のメールを送信
+ * @param redirectUrl - 認証後のリダイレクト先URL（省略可）
  */
 export async function sendVerificationEmail(
   email: string,
   token: string,
-  baseUrl: string
+  baseUrl: string,
+  redirectUrl?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+  let verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+  if (redirectUrl) {
+    verificationUrl += `&redirect=${encodeURIComponent(redirectUrl)}`;
+  }
 
   return sendEmail({
     to: email,

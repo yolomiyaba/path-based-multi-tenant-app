@@ -29,11 +29,13 @@ export async function isUserBelongsToTenant(
 
 /**
  * 新規ユーザーを作成（Server Action）
+ * @param redirectUrl - メール認証後のリダイレクト先URL（省略可）
  */
 export async function createUser(
   email: string,
   password: string,
-  name: string
+  name: string,
+  redirectUrl?: string
 ): Promise<{ success: boolean; error?: string; requiresVerification?: boolean }> {
   try {
     // メールアドレスの正規化
@@ -67,7 +69,7 @@ export async function createUser(
     const protocol = headersList.get("x-forwarded-proto") || "http";
     const baseUrl = `${protocol}://${host}`;
 
-    const emailResult = await sendVerificationEmail(normalizedEmail, token, baseUrl);
+    const emailResult = await sendVerificationEmail(normalizedEmail, token, baseUrl, redirectUrl);
     if (!emailResult.success) {
       console.warn("Failed to send verification email:", emailResult.error);
       // メール送信に失敗してもアカウント作成は成功とする

@@ -1,13 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const token = searchParams.get("token");
+  const redirectUrl = searchParams.get("redirect");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
@@ -32,9 +32,9 @@ function VerifyEmailContent() {
         if (data.success) {
           setStatus("success");
           setMessage("メールアドレスが確認されました");
-          // 3秒後にサインインページへリダイレクト
+          // 3秒後にリダイレクト（redirectUrlがあればそこへ、なければサインインページへ）
           setTimeout(() => {
-            router.push("/auth/signin");
+            window.location.href = redirectUrl || "/auth/signin";
           }, 3000);
         } else {
           setStatus("error");
@@ -47,7 +47,7 @@ function VerifyEmailContent() {
     }
 
     verify();
-  }, [token, router]);
+  }, [token, redirectUrl]);
 
   return (
     <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-md text-center">
