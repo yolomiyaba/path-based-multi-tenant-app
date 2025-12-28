@@ -21,7 +21,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   }
 
   // ユーザーがこのテナントに所属しているか確認
-  if (!isUserBelongsToTenant(session.user.email, tenantId)) {
+  if (!(await isUserBelongsToTenant(session.user.email, tenantId))) {
     // 所属していない場合はテナント選択ページへ
     redirect("/tenants");
   }

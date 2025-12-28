@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { getUserTenantIds } from "@/lib/users";
+import { getUserTenantIds } from "@/lib/actions/user-actions";
 
 /**
  * ハードナビゲーションでリダイレクト
@@ -26,15 +26,19 @@ export default function SelectTenantPage() {
       return;
     }
 
-    const userTenants = getUserTenantIds(session.user.email);
+    const fetchTenants = async () => {
+      const userTenants = await getUserTenantIds(session.user!.email!);
 
-    if (userTenants.length === 0) {
-      hardRedirect("/auth/signup");
-    } else if (userTenants.length === 1) {
-      hardRedirect(`/${userTenants[0]}/dashboard`);
-    } else {
-      setTenants(userTenants);
-    }
+      if (userTenants.length === 0) {
+        hardRedirect("/auth/signup");
+      } else if (userTenants.length === 1) {
+        hardRedirect(`/${userTenants[0]}/dashboard`);
+      } else {
+        setTenants(userTenants);
+      }
+    };
+
+    fetchTenants();
   }, [session, status]);
 
   const handleTenantSelect = (tenantId: string) => {

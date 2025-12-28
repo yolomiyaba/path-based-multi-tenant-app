@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, FormEvent } from "react";
-import { getUserTenantIds } from "@/lib/users";
+import { getUserTenantIds } from "@/lib/actions/user-actions";
 
 export default function SignupPage() {
   const { data: session, status } = useSession();
@@ -27,10 +27,13 @@ export default function SignupPage() {
 
     // 既にテナントに所属している場合はリダイレクト
     if (session?.user?.email) {
-      const tenants = getUserTenantIds(session.user.email);
-      if (tenants.length > 0) {
-        router.push("/auth/redirect");
-      }
+      const checkTenants = async () => {
+        const tenants = await getUserTenantIds(session.user!.email!);
+        if (tenants.length > 0) {
+          router.push("/auth/redirect");
+        }
+      };
+      checkTenants();
     }
   }, [session, status, router]);
 

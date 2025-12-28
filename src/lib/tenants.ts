@@ -1,25 +1,34 @@
 /**
  * テナント管理用のユーティリティ関数
- * 本番環境では、データベースからテナント情報を取得するように実装してください
  */
 
-/**
- * 有効なテナントIDのリスト
- * 本番環境では、データベースから取得するように変更してください
- */
-const VALID_TENANTS = ["tenant1", "tenant2", "tenant3"];
+import { db } from "./db";
+import { tenants } from "./db/schema";
+import { eq } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 /**
  * テナントIDが有効かどうかをチェック
  */
-export function isValidTenant(tenantId: string): boolean {
-  return VALID_TENANTS.includes(tenantId);
-}
+export const isValidTenant = unstable_cache(
+  async (tenantId: string): Promise<boolean> => {
+    const tenant = await db.query.tenants.findFirst({
+      where: eq(tenants.id, tenantId),
+    });
+    return tenant !== undefined;
+  },
+  ["valid-tenant"],
+  { revalidate: 60 }
+);
 
 /**
  * すべての有効なテナントIDを取得
  */
-export function getValidTenants(): string[] {
-  return VALID_TENANTS;
-}
-
+export const getValidTenants = unstable_cache(
+  async (): Promise<string[]> => {
+    const allTenants = await db.query.tenants.findMany();
+    return allTenants.map((t) => t.id);
+  },
+  ["all-tenants"],
+  { revalidate: 60 }
+);

@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { getUserTenantIds, isUserBelongsToTenant } from "@/lib/users";
+import { getUserTenantIds, isUserBelongsToTenant } from "@/lib/actions/user-actions";
 
 /**
  * クッキーからcallbackUrlを取得してクリア
@@ -55,33 +55,38 @@ export default function AuthRedirectPage() {
     }
 
     const email = session.user.email;
-    const tenants = getUserTenantIds(email);
     const callbackUrl = getAndClearCallbackUrl();
 
-    // callbackUrlがある場合、そのテナントへのアクセス権があればリダイレクト
-    if (callbackUrl) {
-      const targetTenant = extractTenantFromCallback(callbackUrl);
-      if (targetTenant && isUserBelongsToTenant(email, targetTenant)) {
-        setMessage(`${callbackUrl} にリダイレクトします...`);
-        hardRedirect(callbackUrl);
-        return;
-      }
-    }
+    const handleRedirect = async () => {
+      const tenants = await getUserTenantIds(email);
 
-    // callbackUrlがない、または無効な場合は通常のフロー
-    if (tenants.length === 0) {
-      // 未登録ユーザー → 会員登録ページへ
-      setMessage("アカウントが見つかりません。登録ページにリダイレクトします...");
-      hardRedirect("/auth/signup");
-    } else if (tenants.length === 1) {
-      // 1つのテナントのみ → そのテナントのダッシュボードへ
-      setMessage(`${tenants[0]} にリダイレクトします...`);
-      hardRedirect(`/${tenants[0]}/dashboard`);
-    } else {
-      // 複数テナント → テナント選択ページへ
-      setMessage("テナント選択ページにリダイレクトします...");
-      hardRedirect("/tenants");
-    }
+      // callbackUrlがある場合、そのテナントへのアクセス権があればリダイレクト
+      if (callbackUrl) {
+        const targetTenant = extractTenantFromCallback(callbackUrl);
+        if (targetTenant && (await isUserBelongsToTenant(email, targetTenant))) {
+          setMessage(`${callbackUrl} にリダイレクトします...`);
+          hardRedirect(callbackUrl);
+          return;
+        }
+      }
+
+      // callbackUrlがない、または無効な場合は通常のフロー
+      if (tenants.length === 0) {
+        // 未登録ユーザー → 会員登録ページへ
+        setMessage("アカウントが見つかりません。登録ページにリダイレクトします...");
+        hardRedirect("/auth/signup");
+      } else if (tenants.length === 1) {
+        // 1つのテナントのみ → そのテナントのダッシュボードへ
+        setMessage(`${tenants[0]} にリダイレクトします...`);
+        hardRedirect(`/${tenants[0]}/dashboard`);
+      } else {
+        // 複数テナント → テナント選択ページへ
+        setMessage("テナント選択ページにリダイレクトします...");
+        hardRedirect("/tenants");
+      }
+    };
+
+    handleRedirect();
   }, [session, status]);
 
   return (

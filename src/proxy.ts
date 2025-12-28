@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { isValidTenant } from "@/lib/tenants";
 
 /**
  * 認証が必要なパス（テナント配下）
@@ -82,13 +81,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // テナントIDの検証
-  if (!isValidTenant(tenantId)) {
-    return NextResponse.json(
-      { error: "Invalid tenant" },
-      { status: 404 }
-    );
-  }
+  // テナントIDの検証はページ側で行う（ミドルウェアでは非同期DB接続が困難）
+  // 無効なテナントの場合はページで404を返す
 
   // APIルート（認証エンドポイントなど）はそのまま通過
   if (pathname.includes("/api/")) {
