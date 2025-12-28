@@ -68,9 +68,15 @@ function isGlobalPath(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // リクエストヘッダーにパス名を追加（レイアウトで使用）
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   // グローバルパス（/auth/, /signup, /select-tenant）はそのまま通過
   if (isGlobalPath(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   // テナント配下のパスかどうかをチェック
@@ -78,7 +84,9 @@ export async function proxy(request: NextRequest) {
 
   if (!tenantId) {
     // テナント配下でない場合はそのまま通過
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   // テナントIDの検証はページ側で行う（ミドルウェアでは非同期DB接続が困難）
@@ -86,12 +94,16 @@ export async function proxy(request: NextRequest) {
 
   // APIルート（認証エンドポイントなど）はそのまま通過
   if (pathname.includes("/api/")) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   // 公開パスはそのまま通過
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   // 保護されたパスの場合、認証チェック
@@ -109,7 +121,9 @@ export async function proxy(request: NextRequest) {
     // テナント所属チェックはページ側で行う
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {
