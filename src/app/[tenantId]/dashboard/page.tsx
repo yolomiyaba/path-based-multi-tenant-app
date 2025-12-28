@@ -44,7 +44,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         </Link>
 
         <Link
-          href={`/${tenantId}/profile`}
+          href="/profile"
           className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
         >
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
