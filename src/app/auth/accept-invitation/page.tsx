@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 
@@ -15,7 +15,6 @@ interface InvitationInfo {
 
 function AcceptInvitationContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { data: session, status } = useSession();
   const token = searchParams.get("token");
 
@@ -84,9 +83,9 @@ function AcceptInvitationContent() {
       if (data.success) {
         setPageStatus("success");
         setMessage("テナントに参加しました！");
-        // 3秒後にテナントダッシュボードへリダイレクト
+        // 2秒後にテナントダッシュボードへハードリダイレクト
         setTimeout(() => {
-          router.push(`/${data.tenantId}/dashboard`);
+          window.location.href = `/${data.tenantId}/dashboard`;
         }, 2000);
       } else {
         setPageStatus("error");
