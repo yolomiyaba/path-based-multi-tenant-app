@@ -54,7 +54,10 @@ async function main() {
     const tenantMemberships = await db.select().from(userTenants).where(eq(userTenants.userId, userId));
 
     // 招待した数を取得
-    const invitations = await db.select().from(tenantInvitations).where(eq(tenantInvitations.invitedBy, userId));
+    const invitationsSent = await db.select().from(tenantInvitations).where(eq(tenantInvitations.invitedBy, userId));
+
+    // このメールアドレス宛の招待を取得
+    const invitationsReceived = await db.select().from(tenantInvitations).where(eq(tenantInvitations.email, email.toLowerCase()));
 
     // 使用したライセンスキー数を取得
     const usedLicenses = await db.select().from(licenseKeys).where(eq(licenseKeys.usedBy, userId));
@@ -70,7 +73,8 @@ async function main() {
     if (tenantMemberships.length > 0) {
       console.log(`    テナントID: ${tenantMemberships.map(m => m.tenantId).join(", ")}`);
     }
-    console.log(`  招待した数: ${invitations.length}`);
+    console.log(`  招待した数: ${invitationsSent.length}`);
+    console.log(`  このメールアドレス宛の招待数: ${invitationsReceived.length}`);
     console.log(`  使用ライセンスキー数: ${usedLicenses.length}`);
     console.log("━".repeat(50));
 
@@ -78,6 +82,7 @@ async function main() {
       console.log("\n⚠️  このユーザーを削除すると、以下も削除されます:");
       console.log("  - ユーザーとテナントの関連付け（user_tenants）");
       console.log("  - このユーザーが送信した招待（tenant_invitations）");
+      console.log("  - このメールアドレス宛の招待（tenant_invitations）");
       console.log("  - ライセンスキーの使用者情報はnullに設定されます");
       console.log("\n削除を実行するには --force オプションを付けてください:");
       console.log(`  npx tsx scripts/delete-user.ts ${email} --force`);
@@ -87,10 +92,16 @@ async function main() {
     // 削除実行
     console.log("\n削除中...");
 
-    // 招待を明示的に削除（CASCADE が効かない場合の対応）
-    if (invitations.length > 0) {
-      console.log(`  招待を削除中... (${invitations.length}件)`);
+    // このユーザーが送信した招待を削除（CASCADE が効かない場合の対応）
+    if (invitationsSent.length > 0) {
+      console.log(`  送信した招待を削除中... (${invitationsSent.length}件)`);
       await db.delete(tenantInvitations).where(eq(tenantInvitations.invitedBy, userId));
+    }
+
+    // このメールアドレス宛の招待を削除
+    if (invitationsReceived.length > 0) {
+      console.log(`  このメールアドレス宛の招待を削除中... (${invitationsReceived.length}件)`);
+      await db.delete(tenantInvitations).where(eq(tenantInvitations.email, email.toLowerCase()));
     }
 
     // ユーザーを削除
