@@ -8,12 +8,13 @@ terraform {
     }
   }
 
-  # 本番環境ではS3バックエンドを使用することを推奨
-  # backend "s3" {
-  #   bucket = "your-terraform-state-bucket"
-  #   key    = "leadxaid/dev/terraform.tfstate"
-  #   region = "ap-northeast-1"
-  # }
+  backend "s3" {
+    bucket         = "leadxaid-terraform-state"
+    key            = "environments/dev/terraform.tfstate"
+    region         = "ap-northeast-1"
+    dynamodb_table = "leadxaid-terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
