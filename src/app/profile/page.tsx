@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 import { tenants } from "@/lib/db/schema";
 import { inArray } from "drizzle-orm";
 import Link from "next/link";
+import { Suspense } from "react";
+import { OAuthConnections } from "@/components/oauth/OAuthConnections";
 
 export default async function ProfilePage() {
   const session = await getServerSession(getGlobalAuthOptions());
@@ -86,6 +88,20 @@ export default async function ProfilePage() {
             </p>
           )}
         </div>
+
+        {/* 連携サービス */}
+        <Suspense
+          fallback={
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                連携サービス
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">読み込み中...</p>
+            </div>
+          }
+        >
+          <OAuthConnections />
+        </Suspense>
 
         <div className="flex justify-center">
           <Link

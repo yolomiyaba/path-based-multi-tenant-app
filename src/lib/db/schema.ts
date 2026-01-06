@@ -86,6 +86,23 @@ export const licenseKeyOtps = pgTable("license_key_otps", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// OAuth連携テーブル（メール・カレンダー連携用）
+export const oauthConnections = pgTable("oauth_connections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(), // google, microsoft
+  providerAccountId: text("provider_account_id").notNull(), // プロバイダー側のアカウントID
+  email: text("email").notNull(), // 連携したアカウントのメールアドレス
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  scopes: text("scopes").notNull(), // カンマ区切りのスコープ（mail,calendar など）
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // 課金セッションテーブル（Stripe連携用）
 export const paymentSessions = pgTable("payment_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -105,6 +122,14 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
 
 export const usersRelations = relations(users, ({ many }) => ({
   userTenants: many(userTenants),
+  oauthConnections: many(oauthConnections),
+}));
+
+export const oauthConnectionsRelations = relations(oauthConnections, ({ one }) => ({
+  user: one(users, {
+    fields: [oauthConnections.userId],
+    references: [users.id],
+  }),
 }));
 
 export const userTenantsRelations = relations(userTenants, ({ one }) => ({
