@@ -99,14 +99,13 @@ output "dynamodb_table_name" {
 # GitHub Actions OIDC Provider & IAM Role
 # =============================================================================
 
-# GitHub OIDC Provider
-resource "aws_iam_openid_connect_provider" "github" {
+# GitHub OIDC Provider（既存のものを参照、なければ作成）
+data "aws_iam_openid_connect_provider" "github_existing" {
   url = "https://token.actions.githubusercontent.com"
+}
 
-  client_id_list = ["sts.amazonaws.com"]
-
-  # GitHub Actionsの証明書サムプリント（GitHubが管理）
-  thumbprint_list = ["ffffffffffffffffffffffffffffffffffffffff"]
+locals {
+  github_oidc_provider_arn = data.aws_iam_openid_connect_provider.github_existing.arn
 }
 
 # GitHub Actions用IAMロール
@@ -119,7 +118,7 @@ resource "aws_iam_role" "github_actions" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
+          Federated = local.github_oidc_provider_arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
