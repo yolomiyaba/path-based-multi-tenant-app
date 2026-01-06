@@ -94,3 +94,55 @@ output "dynamodb_table_name" {
   description = "DynamoDB table name for state locking"
   value       = aws_dynamodb_table.terraform_locks.name
 }
+
+# =============================================================================
+# GitHub Actions OIDC Provider & IAM Role
+# =============================================================================
+
+# GitHub OIDC Provider
+resource "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
+
+  client_id_list = ["sts.amazonaws.com"]
+
+  # GitHub Actionsの証明書サムプリント（GitHubが管理）
+  thumbprint_list = ["ffffffffffffffffffffffffffffffffffffffff"]
+}
+
+# GitHub Actions用IAMロール
+resource "aws_iam_role" "github_actions" {
+  name = "leadxaid-github-actions-terraform"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:yolomiyaba/path-based-multi-tenant-app:*"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# AdministratorAccess ポリシーをアタッチ
+# OIDCでリポジトリを制限しているため、セキュリティリスクは限定的
+resource "aws_iam_role_policy_attachment" "github_actions_admin" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+output "github_actions_role_arn" {
+  description = "IAM Role ARN for GitHub Actions (set as AWS_ROLE_ARN secret)"
+  value       = aws_iam_role.github_actions.arn
+}
