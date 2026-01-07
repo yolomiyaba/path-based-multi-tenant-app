@@ -115,6 +115,12 @@ export const paymentSessions = pgTable("payment_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const dummyTable = pgTable("dummy_table", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // リレーション定義
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   userTenants: many(userTenants),
