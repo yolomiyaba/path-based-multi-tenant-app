@@ -15,6 +15,13 @@
       "when": 1767792878035,
       "tag": "0001_illegal_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767794815992,
+      "tag": "0002_strong_ronan",
+      "breakpoints": true
     }
   ]
 }
