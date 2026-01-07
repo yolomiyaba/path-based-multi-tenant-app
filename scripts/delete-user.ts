@@ -1,6 +1,8 @@
 /**
  * ユーザー削除スクリプト
- * 使用方法: npx tsx scripts/delete-user.ts <email> [--force]
+ * CI/CD環境でのみ実行可能（GitHub Actions）
+ *
+ * 使用方法: GitHub Actions の "Admin Scripts" ワークフローから実行
  */
 
 import { config } from "dotenv";
@@ -12,6 +14,13 @@ import { users, userTenants, tenantInvitations, licenseKeys } from "../src/lib/d
 import { eq } from "drizzle-orm";
 
 async function main() {
+  // CI環境チェック
+  if (!process.env.CI) {
+    console.error("❌ このスクリプトはCI/CD環境でのみ実行可能です。");
+    console.error("   GitHub Actions の 'Admin Scripts' ワークフローから実行してください。");
+    process.exit(1);
+  }
+
   const email = process.argv[2];
   const forceFlag = process.argv.includes("--force");
 

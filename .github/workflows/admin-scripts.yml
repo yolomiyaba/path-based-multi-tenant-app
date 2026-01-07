@@ -1,0 +1,111 @@
+name: Admin Scripts
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: '実行するスクリプト'
+        required: true
+        type: choice
+        options:
+          - create-license-key
+          - delete-user
+          - delete-tenant
+      # create-license-key 用パラメータ
+      email:
+        description: 'メールアドレス（全スクリプトで必要）'
+        required: true
+        type: string
+      plan:
+        description: 'プラン（create-license-key用、省略時: standard）'
+        required: false
+        type: string
+        default: 'standard'
+      expires_in_days:
+        description: '有効期間（create-license-key用、省略時: 365日）'
+        required: false
+        type: string
+        default: '365'
+      # delete-tenant 用パラメータ
+      tenant_id:
+        description: 'テナントID（delete-tenant用）'
+        required: false
+        type: string
+      # 共通パラメータ
+      force:
+        description: '強制実行（delete系で必要）'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  AWS_REGION: 'ap-northeast-1'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  run-script:
+    name: Run Admin Script
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run create-license-key
+        if: inputs.script == 'create-license-key'
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AURORA_RESOURCE_ARN: ${{ secrets.AURORA_RESOURCE_ARN }}
+          AURORA_SECRET_ARN: ${{ secrets.AURORA_SECRET_ARN }}
+          AURORA_DATABASE: ${{ secrets.AURORA_DATABASE }}
+        run: npx tsx scripts/create-license-key.ts "${{ inputs.email }}" "${{ inputs.plan }}" "${{ inputs.expires_in_days }}"
+
+      - name: Run delete-user
+        if: inputs.script == 'delete-user'
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AURORA_RESOURCE_ARN: ${{ secrets.AURORA_RESOURCE_ARN }}
+          AURORA_SECRET_ARN: ${{ secrets.AURORA_SECRET_ARN }}
+          AURORA_DATABASE: ${{ secrets.AURORA_DATABASE }}
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            npx tsx scripts/delete-user.ts "${{ inputs.email }}" --force
+          else
+            npx tsx scripts/delete-user.ts "${{ inputs.email }}"
+          fi
+
+      - name: Run delete-tenant
+        if: inputs.script == 'delete-tenant'
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AURORA_RESOURCE_ARN: ${{ secrets.AURORA_RESOURCE_ARN }}
+          AURORA_SECRET_ARN: ${{ secrets.AURORA_SECRET_ARN }}
+          AURORA_DATABASE: ${{ secrets.AURORA_DATABASE }}
+        run: |
+          if [ -z "${{ inputs.tenant_id }}" ]; then
+            echo "❌ tenant_id が指定されていません"
+            exit 1
+          fi
+          if [ "${{ inputs.force }}" = "true" ]; then
+            npx tsx scripts/delete-tenant.ts "${{ inputs.tenant_id }}" --force
+          else
+            npx tsx scripts/delete-tenant.ts "${{ inputs.tenant_id }}"
+          fi
