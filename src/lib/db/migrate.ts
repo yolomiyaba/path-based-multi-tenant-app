@@ -1,7 +1,8 @@
 /**
  * Aurora Data API経由でマイグレーションを実行するスクリプト
  *
- * 実行: npm run db:migrate
+ * CI/CD環境でのみ実行可能（GitHub Actions）
+ * ローカルからの実行は阻止される
  */
 
 import { config } from "dotenv";
@@ -13,6 +14,13 @@ import { RDSDataClient } from "@aws-sdk/client-rds-data";
 import * as schema from "./schema";
 
 async function main() {
+  // CI環境チェック（GitHub Actionsでは CI=true が自動設定される）
+  if (!process.env.CI) {
+    console.error("❌ Migration can only be run in CI/CD environment.");
+    console.error("   Push changes to main branch to trigger migration.");
+    process.exit(1);
+  }
+
   console.log("🚀 Starting migration...");
 
   const client = new RDSDataClient({
