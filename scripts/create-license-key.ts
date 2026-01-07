@@ -1,6 +1,8 @@
 /**
- * テスト用ライセンスキー発行スクリプト
- * 使用方法: npx tsx scripts/create-license-key.ts <email> [plan] [expiresInDays]
+ * ライセンスキー発行スクリプト
+ * CI/CD環境でのみ実行可能（GitHub Actions）
+ *
+ * 使用方法: GitHub Actions の "Admin Scripts" ワークフローから実行
  */
 
 import { config } from "dotenv";
@@ -16,6 +18,13 @@ function generateLicenseKey(): string {
 }
 
 async function main() {
+  // CI環境チェック
+  if (!process.env.CI) {
+    console.error("❌ このスクリプトはCI/CD環境でのみ実行可能です。");
+    console.error("   GitHub Actions の 'Admin Scripts' ワークフローから実行してください。");
+    process.exit(1);
+  }
+
   const email = process.argv[2];
   const plan = process.argv[3] || "standard";
   const expiresInDays = parseInt(process.argv[4] || "365", 10);
