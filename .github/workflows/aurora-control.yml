@@ -14,7 +14,7 @@ on:
 
 env:
   AWS_REGION: 'ap-northeast-1'
-  CLUSTER_IDENTIFIER: 'leadxaid-dev-aurora'
+  CLUSTER_IDENTIFIER: 'leadxaid-dev'
 
 permissions:
   id-token: write
