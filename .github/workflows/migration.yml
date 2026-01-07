@@ -1,0 +1,48 @@
+name: Database Migration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'drizzle/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: 'ap-northeast-1'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  migrate:
+    name: Run Migration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run migration
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AURORA_RESOURCE_ARN: ${{ secrets.AURORA_RESOURCE_ARN }}
+          AURORA_SECRET_ARN: ${{ secrets.AURORA_SECRET_ARN }}
+          AURORA_DATABASE: ${{ secrets.AURORA_DATABASE }}
+        run: npm run db:migrate
